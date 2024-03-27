@@ -26,7 +26,7 @@
 
 $(function () {
 
-
+  var baseUrl = $('meta[name="baseUrl"]').attr('content');
   //handle modal-add-interstitial calls
   var model, select, refreshSelector;
 
@@ -39,12 +39,18 @@ $(function () {
       model = link.data("dependency");
       select = link.data("select");
       refreshSelector = link.data("refresh");
-      
+
+
       $('#createModal').load(link.attr('href'),function () {
+
+          // this sets the focus to be the name field
+          $('#modal-name').focus();
+          
         //do we need to re-select2 this, after load? Probably.
         $('#createModal').find('select.select2').select2();
         // Initialize the ajaxy select2 with images.
         // This is a copy/paste of the code from snipeit.js, would be great to only have this in one place.
+
         $('.js-data-ajax').each( function (i,item) {
             var link = $(item);
             var endpoint = link.data("endpoint");
@@ -54,7 +60,7 @@ $(function () {
                 ajax: {
 
                     // the baseUrl includes a trailing slash
-                    url: Ziggy.baseUrl + 'api/v1/' + endpoint + '/selectlist',
+                    url: baseUrl + 'api/v1/' + endpoint + '/selectlist', //WARNING - we're hoping that's defined on the page somewhere...
                     dataType: 'json',
                     delay: 250,
                     headers: {
@@ -163,7 +169,7 @@ function formatDatalistSafe(datalist) {
     // console.warn("What in the hell is going on with Select2?!?!!?!?");
     // console.warn($.select2);
     if (datalist.loading) {
-        return $('<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading...');
+        return $('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Loading...');
     }
 
     var root_div = $("<div class='clearfix'>") ;
@@ -199,20 +205,20 @@ function formatDatalistSafe(datalist) {
     root_div.append(name_div)
     var safe_html = root_div.get(0).outerHTML;
     var old_html = formatDatalist(datalist);
-    if(safe_html != old_html) {
-        console.log("HTML MISMATCH: ");
-        console.log("FormatDatalistSafe: ");
+    if (safe_html != old_html) {
+        // console.log("HTML MISMATCH: ");
+        // console.log("FormatDatalistSafe: ");
         // console.dir(root_div.get(0));
-        console.log(safe_html);
-        console.log("FormatDataList: ");
-        console.log(old_html);
+        // console.log(safe_html);
+        // console.log("FormatDataList: ");
+        // console.log(old_html);
     }
     return root_div;
 
 }
 
 function formatDatalist (datalist) {
-    var loading_markup = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Loading...';
+    var loading_markup = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Loading...';
     if (datalist.loading) {
         return loading_markup;
     }

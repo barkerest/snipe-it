@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
@@ -21,7 +22,6 @@ use View;
  */
 class AssetMaintenancesController extends Controller
 {
-
     /**
     * Checks for permissions for this action.
     *
@@ -50,10 +50,9 @@ class AssetMaintenancesController extends Controller
     */
     public function index()
     {
+        $this->authorize('view', Asset::class);
         return view('asset_maintenances/index');
     }
-
-
 
     /**
      *  Returns a form view to create a new asset maintenance.
@@ -66,6 +65,7 @@ class AssetMaintenancesController extends Controller
      */
     public function create()
     {
+        $this->authorize('update', Asset::class);
         $asset = null;
 
         if ($asset = Asset::find(request('asset_id'))) {
@@ -96,32 +96,33 @@ class AssetMaintenancesController extends Controller
     */
     public function store(Request $request)
     {
+        $this->authorize('update', Asset::class);
         // create a new model instance
         $assetMaintenance = new AssetMaintenance();
         $assetMaintenance->supplier_id = $request->input('supplier_id');
         $assetMaintenance->is_warranty = $request->input('is_warranty');
-        $assetMaintenance->cost =  $request->input('cost');
+        $assetMaintenance->cost = $request->input('cost');
         $assetMaintenance->notes = $request->input('notes');
         $asset = Asset::find($request->input('asset_id'));
 
-        if ((!Company::isCurrentUserHasAccess($asset)) && ($asset!=null)) {
+        if ((! Company::isCurrentUserHasAccess($asset)) && ($asset != null)) {
             return static::getInsufficientPermissionsRedirect();
         }
 
         // Save the asset maintenance data
-        $assetMaintenance->asset_id               = $request->input('asset_id');
+        $assetMaintenance->asset_id = $request->input('asset_id');
         $assetMaintenance->asset_maintenance_type = $request->input('asset_maintenance_type');
-        $assetMaintenance->title                  = $request->input('title');
-        $assetMaintenance->start_date             = $request->input('start_date');
-        $assetMaintenance->completion_date        = $request->input('completion_date');
-        $assetMaintenance->user_id                = Auth::id();
+        $assetMaintenance->title = $request->input('title');
+        $assetMaintenance->start_date = $request->input('start_date');
+        $assetMaintenance->completion_date = $request->input('completion_date');
+        $assetMaintenance->user_id = Auth::id();
 
-        if (( $assetMaintenance->completion_date !== null )
-            && ( $assetMaintenance->start_date !== "" )
-            && ( $assetMaintenance->start_date !== "0000-00-00" )
+        if (($assetMaintenance->completion_date !== null)
+            && ($assetMaintenance->start_date !== '')
+            && ($assetMaintenance->start_date !== '0000-00-00')
         ) {
-            $startDate                                = Carbon::parse($assetMaintenance->start_date);
-            $completionDate                           = Carbon::parse($assetMaintenance->completion_date);
+            $startDate = Carbon::parse($assetMaintenance->start_date);
+            $completionDate = Carbon::parse($assetMaintenance->completion_date);
             $assetMaintenance->asset_maintenance_time = $completionDate->diffInDays($startDate);
         }
 
@@ -133,7 +134,6 @@ class AssetMaintenancesController extends Controller
         }
 
         return redirect()->back()->withInput()->withErrors($assetMaintenance->getErrors());
-
     }
 
     /**
@@ -148,30 +148,20 @@ class AssetMaintenancesController extends Controller
     */
     public function edit($assetMaintenanceId = null)
     {
+        $this->authorize('update', Asset::class);
+        // Check if the asset maintenance exists
+        $this->authorize('update', Asset::class);
         // Check if the asset maintenance exists
         if (is_null($assetMaintenance = AssetMaintenance::find($assetMaintenanceId))) {
-            // Redirect to the improvement management page
-            return redirect()->route('maintenances.index')
-                           ->with('error', trans('admin/asset_maintenances/message.not_found'));
-        } elseif (!$assetMaintenance->asset) {
-            return redirect()->route('maintenances.index')
-                ->with('error', 'The asset associated with this maintenance does not exist.');
-
-        } elseif (!Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
+            // Redirect to the asset maintenance management page
+            return redirect()->route('maintenances.index')->with('error', trans('admin/asset_maintenances/message.not_found'));
+        } elseif ((!$assetMaintenance->asset) || ($assetMaintenance->asset->deleted_at!='')) {
+            // Redirect to the asset maintenance management page
+            return redirect()->route('maintenances.index')->with('error', 'asset does not exist');
+        } elseif (! Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
             return static::getInsufficientPermissionsRedirect();
         }
 
-        if ($assetMaintenance->completion_date == '0000-00-00') {
-            $assetMaintenance->completion_date = null;
-        }
-
-        if ($assetMaintenance->start_date == '0000-00-00') {
-            $assetMaintenance->start_date = null;
-        }
-
-        if ($assetMaintenance->cost == '0.00') {
-            $assetMaintenance->cost = null;
-        }
 
         // Prepare Improvement Type List
         $assetMaintenanceType = [
@@ -184,7 +174,6 @@ class AssetMaintenancesController extends Controller
                    ->with('selectedAsset', null)
                    ->with('assetMaintenanceType', $assetMaintenanceType)
                    ->with('item', $assetMaintenance);
-
     }
 
     /**
@@ -200,48 +189,51 @@ class AssetMaintenancesController extends Controller
      */
     public function update(Request $request, $assetMaintenanceId = null)
     {
+        $this->authorize('update', Asset::class);
         // Check if the asset maintenance exists
         if (is_null($assetMaintenance = AssetMaintenance::find($assetMaintenanceId))) {
             // Redirect to the asset maintenance management page
-            return redirect()->route('maintenances.index')
-                           ->with('error', trans('admin/asset_maintenances/message.not_found'));
-        } elseif (!Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
+            return redirect()->route('maintenances.index')->with('error', trans('admin/asset_maintenances/message.not_found'));
+        } elseif ((!$assetMaintenance->asset) || ($assetMaintenance->asset->deleted_at!='')) {
+                // Redirect to the asset maintenance management page
+                return redirect()->route('maintenances.index')->with('error', 'asset does not exist');
+        } elseif (! Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
             return static::getInsufficientPermissionsRedirect();
         }
 
-        $assetMaintenance->supplier_id = e($request->input('supplier_id'));
-        $assetMaintenance->is_warranty = e($request->input('is_warranty'));
-        $assetMaintenance->cost =  Helper::ParseFloat(e($request->input('cost')));
-        $assetMaintenance->notes = e($request->input('notes'));
+        $assetMaintenance->supplier_id = $request->input('supplier_id');
+        $assetMaintenance->is_warranty = $request->input('is_warranty');
+        $assetMaintenance->cost =  $request->input('cost');
+        $assetMaintenance->notes = $request->input('notes');
 
         $asset = Asset::find(request('asset_id'));
 
-        if (!Company::isCurrentUserHasAccess($asset)) {
+        if (! Company::isCurrentUserHasAccess($asset)) {
             return static::getInsufficientPermissionsRedirect();
         }
 
         // Save the asset maintenance data
-        $assetMaintenance->asset_id               = $request->input('asset_id');
+        $assetMaintenance->asset_id = $request->input('asset_id');
         $assetMaintenance->asset_maintenance_type = $request->input('asset_maintenance_type');
-        $assetMaintenance->title                  = $request->input('title');
-        $assetMaintenance->start_date             = $request->input('start_date');
-        $assetMaintenance->completion_date        = $request->input('completion_date');
+        $assetMaintenance->title = $request->input('title');
+        $assetMaintenance->start_date = $request->input('start_date');
+        $assetMaintenance->completion_date = $request->input('completion_date');
 
-        if (( $assetMaintenance->completion_date == null )
+        if (($assetMaintenance->completion_date == null)
         ) {
-            if (( $assetMaintenance->asset_maintenance_time !== 0 )
-              || ( !is_null($assetMaintenance->asset_maintenance_time) )
+            if (($assetMaintenance->asset_maintenance_time !== 0)
+              || (! is_null($assetMaintenance->asset_maintenance_time))
             ) {
                 $assetMaintenance->asset_maintenance_time = null;
             }
         }
 
-        if (( $assetMaintenance->completion_date !== null )
-          && ( $assetMaintenance->start_date !== "" )
-          && ( $assetMaintenance->start_date !== "0000-00-00" )
+        if (($assetMaintenance->completion_date !== null)
+          && ($assetMaintenance->start_date !== '')
+          && ($assetMaintenance->start_date !== '0000-00-00')
         ) {
-            $startDate                                = Carbon::parse($assetMaintenance->start_date);
-            $completionDate                           = Carbon::parse($assetMaintenance->completion_date);
+            $startDate = Carbon::parse($assetMaintenance->start_date);
+            $completionDate = Carbon::parse($assetMaintenance->completion_date);
             $assetMaintenance->asset_maintenance_time = $completionDate->diffInDays($startDate);
         }
 
@@ -252,6 +244,7 @@ class AssetMaintenancesController extends Controller
             return redirect()->route('maintenances.index')
                          ->with('success', trans('admin/asset_maintenances/message.edit.success'));
         }
+
         return redirect()->back()->withInput()->withErrors($assetMaintenance->getErrors());
     }
 
@@ -266,12 +259,13 @@ class AssetMaintenancesController extends Controller
     */
     public function destroy($assetMaintenanceId)
     {
+        $this->authorize('update', Asset::class);
         // Check if the asset maintenance exists
         if (is_null($assetMaintenance = AssetMaintenance::find($assetMaintenanceId))) {
             // Redirect to the asset maintenance management page
             return redirect()->route('maintenances.index')
                            ->with('error', trans('admin/asset_maintenances/message.not_found'));
-        } elseif (!Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
+        } elseif (! Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
             return static::getInsufficientPermissionsRedirect();
         }
 
@@ -294,12 +288,14 @@ class AssetMaintenancesController extends Controller
     */
     public function show($assetMaintenanceId)
     {
+        $this->authorize('view', Asset::class);
+
         // Check if the asset maintenance exists
         if (is_null($assetMaintenance = AssetMaintenance::find($assetMaintenanceId))) {
             // Redirect to the asset maintenance management page
             return redirect()->route('maintenances.index')
                            ->with('error', trans('admin/asset_maintenances/message.not_found'));
-        } elseif (!Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
+        } elseif (! Company::isCurrentUserHasAccess($assetMaintenance->asset)) {
             return static::getInsufficientPermissionsRedirect();
         }
 

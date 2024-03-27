@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
@@ -9,6 +10,7 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Asset;
 use App\Models\AssetModel;
 use Illuminate\Http\Request;
+use App\Http\Requests\ImageUploadRequest;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -36,13 +38,15 @@ class AssetModelsController extends Controller
                 'image',
                 'name',
                 'model_number',
+                'min_amt',
                 'eol',
                 'notes',
                 'created_at',
                 'manufacturer',
                 'requestable',
                 'assets_count',
-                'category'
+                'category',
+                'fieldset',
             ];
 
         $assetmodels = AssetModel::select([
@@ -50,6 +54,7 @@ class AssetModelsController extends Controller
             'models.image',
             'models.name',
             'model_number',
+            'min_amt',
             'eol',
             'requestable',
             'models.notes',
@@ -61,25 +66,24 @@ class AssetModelsController extends Controller
             'models.deleted_at',
             'models.updated_at',
          ])
-            ->with('category','depreciation', 'manufacturer','fieldset')
+            ->with('category', 'depreciation', 'manufacturer', 'fieldset.fields.defaultValues')
             ->withCount('assets as assets_count');
 
-
-
-        if ($request->filled('status')) {
+        if ($request->input('status')=='deleted') {
             $assetmodels->onlyTrashed();
+        }
+
+        if ($request->filled('category_id')) {
+            $assetmodels = $assetmodels->where('models.category_id', '=', $request->input('category_id'));
         }
 
         if ($request->filled('search')) {
             $assetmodels->TextSearch($request->input('search'));
         }
 
-        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
-        // case we override with the actual count, so we should return 0 items.
-        $offset = (($assetmodels) && ($request->get('offset') > $assetmodels->count())) ? $assetmodels->count() : $request->get('offset', 0);
-
-        // Check to make sure the limit is not higher than the max allowed
-        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+        // Make sure the offset and limit are actually integers and do not exceed system limits
+        $offset = ($request->input('offset') > $assetmodels->count()) ? $assetmodels->count() : abs($request->input('offset'));
+        $limit = app('api_limit_value');
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
         $sort = in_array($request->input('sort'), $allowed_columns) ? $request->input('sort') : 'models.created_at';
@@ -91,6 +95,9 @@ class AssetModelsController extends Controller
             case 'category':
                 $assetmodels->OrderCategory($order);
                 break;
+            case 'fieldset':
+                $assetmodels->OrderFieldset($order);
+                break;
             default:
                 $assetmodels->orderBy($sort, $order);
                 break;
@@ -98,6 +105,7 @@ class AssetModelsController extends Controller
 
         $total = $assetmodels->count();
         $assetmodels = $assetmodels->skip($offset)->take($limit)->get();
+
         return (new AssetModelsTransformer)->transformAssetModels($assetmodels, $total);
     }
 
@@ -107,19 +115,21 @@ class AssetModelsController extends Controller
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0]
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ImageUploadRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ImageUploadRequest $request)
     {
         $this->authorize('create', AssetModel::class);
         $assetmodel = new AssetModel;
         $assetmodel->fill($request->all());
+        $assetmodel = $request->handleImages($assetmodel);
 
         if ($assetmodel->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()));
+
 
     }
 
@@ -135,6 +145,7 @@ class AssetModelsController extends Controller
     {
         $this->authorize('view', AssetModel::class);
         $assetmodel = AssetModel::withCount('assets as assets_count')->findOrFail($id);
+
         return (new AssetModelsTransformer)->transformAssetModel($assetmodel);
     }
 
@@ -149,7 +160,8 @@ class AssetModelsController extends Controller
     public function assets($id)
     {
         $this->authorize('view', AssetModel::class);
-        $assets = Asset::where('model_id','=',$id)->get();
+        $assets = Asset::where('model_id', '=', $id)->get();
+
         return (new AssetsTransformer)->transformAssets($assets, $assets->count());
     }
 
@@ -159,16 +171,17 @@ class AssetModelsController extends Controller
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0]
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ImageUploadRequest  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(ImageUploadRequest $request, $id)
     {
         $this->authorize('update', AssetModel::class);
         $assetmodel = AssetModel::findOrFail($id);
         $assetmodel->fill($request->all());
-
+        $assetmodel = $request->handleImages($assetmodel);
+        
         /**
          * Allow custom_fieldset_id to override and populate fieldset_id.
          * This is stupid, but required for legacy API support.
@@ -178,7 +191,7 @@ class AssetModelsController extends Controller
          * it, but I'll be damned if I can think of one. - snipe
          */
         if ($request->filled('custom_fieldset_id')) {
-            $assetmodel->fieldset_id = $request->get("custom_fieldset_id");
+            $assetmodel->fieldset_id = $request->get('custom_fieldset_id');
         }
 
 
@@ -204,11 +217,11 @@ class AssetModelsController extends Controller
         $this->authorize('delete', $assetmodel);
 
         if ($assetmodel->assets()->count() > 0) {
-            return response()->json(Helper::formatStandardApiResponse('error', null,  trans('admin/models/message.assoc_users')));
+            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/models/message.assoc_users')));
         }
 
         if ($assetmodel->image) {
-            try  {
+            try {
                 Storage::disk('public')->delete('assetmodels/'.$assetmodel->image);
             } catch (\Exception $e) {
                 \Log::info($e);
@@ -216,8 +229,8 @@ class AssetModelsController extends Controller
         }
 
         $assetmodel->delete();
-        return response()->json(Helper::formatStandardApiResponse('success', null,  trans('admin/models/message.delete.success')));
 
+        return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/models/message.delete.success')));
     }
 
     /**
@@ -226,11 +239,11 @@ class AssetModelsController extends Controller
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0.16]
      * @see \App\Http\Transformers\SelectlistTransformer
-     *
      */
     public function selectlist(Request $request)
     {
 
+        $this->authorize('view.selectlists');
         $assetmodels = AssetModel::select([
             'models.id',
             'models.name',
@@ -238,7 +251,7 @@ class AssetModelsController extends Controller
             'models.model_number',
             'models.manufacturer_id',
             'models.category_id',
-        ])->with('manufacturer','category');
+        ])->with('manufacturer', 'category');
 
         $settings = \App\Models\Setting::getSettings();
 
@@ -249,7 +262,6 @@ class AssetModelsController extends Controller
         $assetmodels = $assetmodels->OrderCategory('ASC')->OrderManufacturer('ASC')->orderby('models.name', 'asc')->orderby('models.model_number', 'asc')->paginate(50);
 
         foreach ($assetmodels as $assetmodel) {
-
             $assetmodel->use_text = '';
 
             if ($settings->modellistCheckedValue('category')) {
@@ -260,10 +272,10 @@ class AssetModelsController extends Controller
                 $assetmodel->use_text .= (($assetmodel->manufacturer) ? $assetmodel->manufacturer->name.' ' : '');
             }
 
-            $assetmodel->use_text .=  $assetmodel->name;
+            $assetmodel->use_text .= $assetmodel->name;
 
-            if (($settings->modellistCheckedValue('model_number')) && ($assetmodel->model_number!='')) {
-                $assetmodel->use_text .=  ' (#'.$assetmodel->model_number.')';
+            if (($settings->modellistCheckedValue('model_number')) && ($assetmodel->model_number != '')) {
+                $assetmodel->use_text .= ' (#'.$assetmodel->model_number.')';
             }
 
             $assetmodel->use_image = ($settings->modellistCheckedValue('image') && ($assetmodel->image)) ? Storage::disk('public')->url('models/'.e($assetmodel->image)) : null;
@@ -271,5 +283,4 @@ class AssetModelsController extends Controller
 
         return (new SelectlistTransformer)->transformSelectlist($assetmodels);
     }
-
 }

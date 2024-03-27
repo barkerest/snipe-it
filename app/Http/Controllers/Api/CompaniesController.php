@@ -8,6 +8,7 @@ use App\Http\Transformers\CompaniesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Company;
 use Illuminate\Http\Request;
+use App\Http\Requests\ImageUploadRequest;
 use Illuminate\Support\Facades\Storage;
 
 class CompaniesController extends Controller
@@ -26,6 +27,9 @@ class CompaniesController extends Controller
         $allowed_columns = [
             'id',
             'name',
+            'phone',
+            'fax',
+            'email',
             'created_at',
             'updated_at',
             'users_count',
@@ -36,18 +40,27 @@ class CompaniesController extends Controller
             'components_count',
         ];
 
-        $companies = Company::withCount('assets as assets_count','licenses as licenses_count','accessories as accessories_count','consumables as consumables_count','components as components_count','users as users_count');
+        $companies = Company::withCount(['assets as assets_count'  => function ($query) {
+            $query->AssetsForShow();
+        }])->withCount('licenses as licenses_count', 'accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'users as users_count');
 
         if ($request->filled('search')) {
             $companies->TextSearch($request->input('search'));
         }
 
-        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
-        // case we override with the actual count, so we should return 0 items.
-        $offset = (($companies) && ($request->get('offset') > $companies->count())) ? $companies->count() : $request->get('offset', 0);
+        if ($request->filled('name')) {
+            $companies->where('name', '=', $request->input('name'));
+        }
 
-        // Check to make sure the limit is not higher than the max allowed
-        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+		if ($request->filled('email')) {
+            $companies->where('email', '=', $request->input('email'));
+        }
+
+
+        // Make sure the offset and limit are actually integers and do not exceed system limits
+        $offset = ($request->input('offset') > $companies->count()) ? $companies->count() : app('api_offset_value');
+        $limit = app('api_limit_value');
+
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
         $sort = in_array($request->input('sort'), $allowed_columns) ? $request->input('sort') : 'created_at';
@@ -65,21 +78,22 @@ class CompaniesController extends Controller
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0]
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ImageUploadRequest $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ImageUploadRequest $request)
     {
         $this->authorize('create', Company::class);
         $company = new Company;
         $company->fill($request->all());
-
+        $company = $request->handleImages($company);
+        
         if ($company->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', (new CompaniesTransformer)->transformCompany($company), trans('admin/companies/message.create.success')));
         }
+
         return response()
             ->json(Helper::formatStandardApiResponse('error', null, $company->getErrors()));
-
     }
 
     /**
@@ -104,15 +118,16 @@ class CompaniesController extends Controller
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0]
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ImageUploadRequest  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(ImageUploadRequest $request, $id)
     {
         $this->authorize('update', Company::class);
         $company = Company::findOrFail($id);
         $company->fill($request->all());
+        $company = $request->handleImages($company);
 
         if ($company->save()) {
             return response()
@@ -137,13 +152,14 @@ class CompaniesController extends Controller
         $company = Company::findOrFail($id);
         $this->authorize('delete', $company);
 
-        if ( !$company->isDeletable() ) {
+        if (! $company->isDeletable()) {
             return response()
-                    ->json(Helper::formatStandardApiResponse('error', null,  trans('admin/companies/message.assoc_users')));
+                    ->json(Helper::formatStandardApiResponse('error', null, trans('admin/companies/message.assoc_users')));
         }
         $company->delete();
+
         return response()
-            ->json(Helper::formatStandardApiResponse('success', null,  trans('admin/companies/message.delete.success')));
+            ->json(Helper::formatStandardApiResponse('success', null, trans('admin/companies/message.delete.success')));
     }
 
     /**
@@ -152,14 +168,14 @@ class CompaniesController extends Controller
      * @author [A. Gianotto] [<snipe@snipe.net>]
      * @since [v4.0.16]
      * @see \App\Http\Transformers\SelectlistTransformer
-     *
      */
     public function selectlist(Request $request)
     {
-
+        $this->authorize('view.selectlists');
         $companies = Company::select([
             'companies.id',
             'companies.name',
+            'companies.email',
             'companies.image',
         ]);
 

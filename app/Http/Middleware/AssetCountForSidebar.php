@@ -2,8 +2,8 @@
 
 namespace App\Http\Middleware;
 
-use Auth;
 use App\Models\Asset;
+use Auth;
 use Closure;
 
 class AssetCountForSidebar
@@ -17,8 +17,7 @@ class AssetCountForSidebar
      */
     public function handle($request, Closure $next)
     {
-        try
-        {
+        try {
             $total_rtd_sidebar = Asset::RTD()->count();
             view()->share('total_rtd_sidebar', $total_rtd_sidebar);
         } catch (\Exception $e) {
@@ -49,6 +48,13 @@ class AssetCountForSidebar
         try {
             $total_undeployable_sidebar = Asset::Undeployable()->count();
             view()->share('total_undeployable_sidebar', $total_undeployable_sidebar);
+        } catch (\Exception $e) {
+            \Log::debug($e);
+        }
+
+        try {
+            $total_byod_sidebar = Asset::where('byod', '=', '1')->count();
+            view()->share('total_byod_sidebar', $total_byod_sidebar);
         } catch (\Exception $e) {
             \Log::debug($e);
         }

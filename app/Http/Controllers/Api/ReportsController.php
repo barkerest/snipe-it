@@ -19,25 +19,42 @@ class ReportsController extends Controller
     public function index(Request $request)
     {
         $this->authorize('reports.view');
-        
-        $actionlogs = Actionlog::with('item', 'user', 'target','location');
+
+        $actionlogs = Actionlog::with('item', 'user', 'admin', 'target', 'location');
 
         if ($request->filled('search')) {
             $actionlogs = $actionlogs->TextSearch(e($request->input('search')));
         }
 
-        if (($request->filled('target_type'))  && ($request->filled('target_id'))) {
-            $actionlogs = $actionlogs->where('target_id','=',$request->input('target_id'))
-                ->where('target_type','=',"App\\Models\\".ucwords($request->input('target_type')));
+        if (($request->filled('target_type')) && ($request->filled('target_id'))) {
+            $actionlogs = $actionlogs->where('target_id', '=', $request->input('target_id'))
+                ->where('target_type', '=', 'App\\Models\\'.ucwords($request->input('target_type')));
         }
 
-        if (($request->filled('item_type'))  && ($request->filled('item_id'))) {
-            $actionlogs = $actionlogs->where('item_id','=',$request->input('item_id'))
-                ->where('item_type','=',"App\\Models\\".ucwords($request->input('item_type')));
+        if (($request->filled('item_type')) && ($request->filled('item_id'))) {
+            $actionlogs = $actionlogs->where('item_id', '=', $request->input('item_id'))
+                ->where('item_type', '=', 'App\\Models\\'.ucwords($request->input('item_type')))
+                ->orWhere(function($query) use ($request)
+                {
+                    $query->where('target_id', '=', $request->input('item_id'))
+                    ->where('target_type', '=', 'App\\Models\\'.ucwords($request->input('item_type')));
+                });
         }
 
         if ($request->filled('action_type')) {
-            $actionlogs = $actionlogs->where('action_type','=',$request->input('action_type'))->orderBy('created_at', 'desc');
+            $actionlogs = $actionlogs->where('action_type', '=', $request->input('action_type'))->orderBy('created_at', 'desc');
+        }
+
+        if ($request->filled('user_id')) {
+            $actionlogs = $actionlogs->where('user_id', '=', $request->input('user_id'));
+        }
+
+        if ($request->filled('action_source')) {
+            $actionlogs = $actionlogs->where('action_source', '=', $request->input('action_source'))->orderBy('created_at', 'desc');
+        }
+
+        if ($request->filled('remote_ip')) {
+            $actionlogs = $actionlogs->where('remote_ip', '=', $request->input('remote_ip'))->orderBy('created_at', 'desc');
         }
 
         if ($request->filled('uploads')) {
@@ -51,17 +68,23 @@ class ReportsController extends Controller
             'user_id',
             'accept_signature',
             'action_type',
-            'note'
+            'note',
+            'remote_ip',
+            'user_agent',
+            'action_source',
         ];
-        
+
+
+        // Make sure the offset and limit are actually integers and do not exceed system limits
+        $offset = ($request->input('offset') > $actionlogs->count()) ? $actionlogs->count() : app('api_offset_value');
+        $limit = app('api_limit_value');
+
         $sort = in_array($request->input('sort'), $allowed_columns) ? e($request->input('sort')) : 'created_at';
         $order = ($request->input('order') == 'asc') ? 'asc' : 'desc';
-        $offset = request('offset', 0);
-        $limit = request('limit', 50);
         $total = $actionlogs->count();
+
         $actionlogs = $actionlogs->orderBy($sort, $order)->skip($offset)->take($limit)->get();
 
         return response()->json((new ActionlogsTransformer)->transformActionlogs($actionlogs, $total), 200, ['Content-Type' => 'application/json;charset=utf8'], JSON_UNESCAPED_UNICODE);
-
     }
 }

@@ -2,13 +2,14 @@
 
 return array(
 
-    'does_not_exist' => 'Lisensi tidak ada.',
+    'does_not_exist' => 'License does not exist or you do not have permission to view it.',
     'user_does_not_exist' => 'Pengguna tidak ada.',
     'asset_does_not_exist' 	=> 'Aset yang ingin Anda kaitkan dengan lisensi ini tidak ada.',
     'owner_doesnt_match_asset' => 'Aset yang ingin Anda kaitkan dengan lisensi ini dimiliki oleh orang lain selain orang yang dipilih di dropdown yang ditugaskan.',
     'assoc_users'	 => 'Lisensi ini saat ini diperiksa oleh pengguna dan tidak dapat dihapus. Mohon periksa dulu lisensinya, lalu coba hapus lagi. ',
     'select_asset_or_person' => 'Anda harus memilih aset atau pengguna, namun tidak keduanya.',
     'not_found' => 'License not found',
+    'seats_available' => ':seat_count seats available',
 
 
     'create' => array(
@@ -41,7 +42,8 @@ return array(
 
     'checkout' => array(
         'error'   => 'Terjadi masalah saat menghapus lisensi. Silahkan coba lagi.',
-        'success' => 'Lisensi berhasil diperiksa'
+        'success' => 'Lisensi berhasil diperiksa',
+        'not_enough_seats' => 'Not enough license seats available for checkout',
     ),
 
     'checkin' => array(

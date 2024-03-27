@@ -8,6 +8,8 @@ return array(
     'clone'                             => 'Klona kategori',
     'create'  							=> 'Skapa kategori',
     'edit'                              => 'Redigera kategori',
+    'email_will_be_sent_due_to_global_eula' => 'Ett e-postmeddelande kommer att skickas till användaren eftersom det globala användaravtalet (EULA) används.',
+    'email_will_be_sent_due_to_category_eula' => 'Ett e-postmeddelande kommer att skickas till användaren eftersom ett användaravtal (EULA) är inställt för denna kategori.',
     'eula_text'							=> 'Kategori EULA',
     'eula_text_help'					=> 'I detta fält kan du anpassa dina licensavtal för slutanvändare, EULA, för vissa typer av tillgångar. Om du bara har ett licensavtal för alla dina tillgångar, kan du markera rutan nedan för att använda standardlicensavtalet.',
     'name'                              => 'Kategorinamn',
@@ -18,5 +20,6 @@ return array(
     'update'  							=> 'Uppdatera kategori',
     'use_default_eula'					=> 'Använd <a href="#" data-toggle="modal" data-target="#eulaModal">standard-licensavtal, EULA</a> istället.',
     'use_default_eula_disabled'			=> '<del>Använd den primära licensavtalet, EULA:n, istället.</del> Inget primärt licensavtal, EULA, är satt. Vänligen lägg till en under Inställningar.',
+    'use_default_eula_column'			=> 'Använd standard EULA',
 
 );

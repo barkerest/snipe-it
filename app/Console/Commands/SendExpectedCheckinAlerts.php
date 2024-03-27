@@ -3,12 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\Asset;
+use App\Models\Recipients\AlertRecipient;
 use App\Models\Setting;
 use App\Notifications\ExpectedCheckinAdminNotification;
 use App\Notifications\ExpectedCheckinNotification;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use App\Models\Recipients\AlertRecipient;
+use Illuminate\Support\Facades\Log;
 
 class SendExpectedCheckinAlerts extends Command
 {
@@ -41,15 +42,16 @@ class SendExpectedCheckinAlerts extends Command
      */
     public function handle()
     {
-        $settings   = Setting::getSettings();
-        $whenNotify = Carbon::now()->addDays(7);
-        $assets     = Asset::with('assignedTo')->whereNotNull('assigned_to')->whereNotNull('expected_checkin')->where('expected_checkin', '<=', $whenNotify)->get();
+        $settings = Setting::getSettings();
+        $whenNotify = Carbon::now();
+        $assets = Asset::with('assignedTo')->whereNotNull('assigned_to')->whereNotNull('expected_checkin')->where('expected_checkin', '<=', $whenNotify)->get();
 
-        $this->info($whenNotify . ' is deadline');
-        $this->info($assets->count() . ' assets');
+        $this->info($whenNotify.' is deadline');
+        $this->info($assets->count().' assets');
 
         foreach ($assets as $asset) {
             if ($asset->assigned && $asset->checkedOutToUser()) {
+                Log::info('Sending ExpectedCheckinNotification to ' . $asset->assigned->email);
                 $asset->assigned->notify((new ExpectedCheckinNotification($asset)));
             }
         }

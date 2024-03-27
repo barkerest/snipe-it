@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Validator;
 
 class ComponentCheckinController extends Controller
 {
-
     /**
      * Returns a view that allows the checkin of a component from an asset.
      *
@@ -39,13 +38,12 @@ class ComponentCheckinController extends Controller
                     trans('admin/components/message.not_found'));
             }
             $this->authorize('checkin', $component);
-            return view('components/checkin', compact('component_assets','component','asset'));
+
+            return view('components/checkin', compact('component_assets', 'component', 'asset'));
         }
 
         return redirect()->route('components.index')->with('error', trans('admin/components/messages.not_found'));
-
     }
-
 
     /**
      * Validate and store checkin data.
@@ -58,20 +56,20 @@ class ComponentCheckinController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
-    public function store(Request $request, $component_asset_id)
+    public function store(Request $request, $component_asset_id, $backto = null)
     {
         if ($component_assets = DB::table('components_assets')->find($component_asset_id)) {
             if (is_null($component = Component::find($component_assets->component_id))) {
+
                 return redirect()->route('components.index')->with('error',
                     trans('admin/components/message.not_found'));
             }
-
 
             $this->authorize('checkin', $component);
 
             $max_to_checkin = $component_assets->assigned_qty;
             $validator = Validator::make($request->all(), [
-                "checkin_qty" => "required|numeric|between:1,$max_to_checkin"
+                'checkin_qty' => "required|numeric|between:1,$max_to_checkin",
             ]);
 
             if ($validator->fails()) {
@@ -81,7 +79,7 @@ class ComponentCheckinController extends Controller
             }
 
             // Validation passed, so let's figure out what we have to do here.
-            $qty_remaining_in_checkout = ($component_assets->assigned_qty - (int)$request->input('checkin_qty'));
+            $qty_remaining_in_checkout = ($component_assets->assigned_qty - (int) $request->input('checkin_qty'));
 
             // We have to modify the record to reflect the new qty that's
             // actually checked out.
@@ -98,11 +96,15 @@ class ComponentCheckinController extends Controller
             $asset = Asset::find($component_assets->asset_id);
 
             event(new CheckoutableCheckedIn($component, $asset, Auth::user(), $request->input('note'), Carbon::now()));
+            if ($backto == 'asset'){
+                return redirect()->route('hardware.show', $asset->id)->with('success',
+                    trans('admin/components/message.checkin.success'));
+            }
 
             return redirect()->route('components.index')->with('success',
                 trans('admin/components/message.checkin.success'));
         }
+
         return redirect()->route('components.index')->with('error', trans('admin/components/message.does_not_exist'));
     }
-
 }

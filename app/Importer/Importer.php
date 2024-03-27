@@ -1,13 +1,14 @@
 <?php
+
 namespace App\Importer;
 
 use App\Models\CustomField;
 use App\Models\Department;
 use App\Models\Setting;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 use ForceUTF8\Encoding;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use League\Csv\Reader;
 
@@ -18,14 +19,22 @@ abstract class Importer
      * Id of User performing import
      * @var
      */
+    
     protected $user_id;
     /**
      * Are we updating items in the import
      * @var bool
      */
+
     protected $updating;
+
     /**
      * Default Map of item fields->csv names
+     *
+     * This has been moved into app/Http/Livewire/Importer.php to be more granular.
+     * This private variable is ONLY used for the cli-importer.
+     *
+     * @todo - find a way to make this less duplicative
      * @var array
      */
     private $defaultFieldMap = [
@@ -36,16 +45,16 @@ abstract class Importer
         'checkout_location' => 'checkout location',
         'company' => 'company',
         'item_name' => 'item name',
-        'item_number' => "item number",
+        'item_number' => 'item number',
         'image' => 'image',
         'expiration_date' => 'expiration date',
         'location' => 'location',
         'notes' => 'notes',
         'license_email' => 'licensed to email',
-        'license_name' => "licensed to name",
+        'license_name' => 'licensed to name',
         'maintained' => 'maintained',
         'manufacturer' => 'manufacturer',
-        'asset_model' => "model name",
+        'asset_model' => 'model name',
         'model_number' => 'model number',
         'order_number' => 'order number',
         'purchase_cost' => 'purchase cost',
@@ -55,7 +64,7 @@ abstract class Importer
         'reassignable' => 'reassignable',
         'requestable' => 'requestable',
         'seats' => 'seats',
-        'serial_number' => 'serial number',
+        'serial' => 'serial number',
         'status' => 'status',
         'supplier' => 'supplier',
         'termination_date' => 'termination date',
@@ -64,17 +73,22 @@ abstract class Importer
         'email' => 'email',
         'username' => 'username',
         'address' => 'address',
+        'address2' => 'address2',
         'city' => 'city',
         'state' => 'state',
         'country' => 'country',
+        'zip' => 'zip',
         'jobtitle' => 'job title',
         'employee_num' => 'employee number',
         'phone_number' => 'phone number',
         'first_name' => 'first name',
         'last_name' => 'last name',
         'department' => 'department',
-        'manager_first_name' => 'manager first name',
-        'manager_last_name' => 'manager last name',
+        'manager_name' => 'manager full name',
+        'manager_username' => 'manager username',
+        'min_amt' => 'minimum quantity',
+        'remote' => 'remote',
+        'vip' => 'vip',
     ];
     /**
      * Map of item fields->csv names
@@ -106,8 +120,8 @@ abstract class Importer
     public function __construct($file)
     {
         $this->fieldMap = $this->defaultFieldMap;
-        if (! ini_get("auto_detect_line_endings")) {
-            ini_set("auto_detect_line_endings", '1');
+        if (! ini_get('auto_detect_line_endings')) {
+            ini_set('auto_detect_line_endings', '1');
         }
         // By default the importer passes a url to the file.
         // However, for testing we also support passing a string directly
@@ -116,8 +130,9 @@ abstract class Importer
         } else {
             $this->csv = Reader::createFromString($file);
         }
-        $this->tempPassword = substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 20);
+        $this->tempPassword = substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 40);
     }
+
     // Cached Values for import lookups
     protected $customFields;
 
@@ -138,7 +153,7 @@ abstract class Importer
 
         DB::transaction(function () use (&$results) {
             Model::unguard();
-            $resultsCount = sizeof($results);
+            $resultsCount = count($results);
             foreach ($results as $row) {
                 $this->handle($row);
                 if ($this->progressCallback) {
@@ -149,7 +164,6 @@ abstract class Importer
             }
         });
     }
-
 
     abstract protected function handle($row);
 
@@ -166,6 +180,7 @@ abstract class Importer
         // This 'inverts' the fields such that we have a collection of fields indexed by name.
         $this->customFields = CustomField::All()->reduce(function ($nameLookup, $field) {
             $nameLookup[$field['name']] = $field;
+
             return $nameLookup;
         });
         // Remove any custom fields that do not exist in the header row.  This prevents nulling out values that shouldn't exist.
@@ -177,8 +192,8 @@ abstract class Importer
                 array_change_key_case(array_flip($headerRow))
             );
         }
-
     }
+
     /**
      * Check to see if the given key exists in the array, and trim excess white space before returning it
      *
@@ -191,15 +206,14 @@ abstract class Importer
      */
     public function findCsvMatch(array $array, $key, $default = null)
     {
-
         $val = $default;
         $key = $this->lookupCustomKey($key);
 
-        // $this->log("Custom Key: ${key}");
+       // $this->log("Custom Key: ${key}");
         if (array_key_exists($key, $array)) {
-            $val = Encoding::toUTF8(trim($array[ $key ]));
+            $val = Encoding::toUTF8(trim($array[$key]));
         }
-        // $this->log("${key}: ${val}");
+        //$this->log("${key}: ${val}");
         return $val;
     }
 
@@ -222,7 +236,7 @@ abstract class Importer
 
     /**
      * Used to lowercase header values to ensure we're comparing values properly.
-     * 
+     *
      * @param $results
      * @return array
      */
@@ -232,8 +246,10 @@ abstract class Importer
         foreach ($results as $index => $arrayToNormalize) {
             $newArray[$index] = array_change_key_case($arrayToNormalize);
         }
+
         return $newArray;
     }
+
     /**
      * Figure out the fieldname of the custom field
      *
@@ -245,6 +261,7 @@ abstract class Importer
     public function array_smart_custom_field_fetch(array $array, $key)
     {
         $index_name = strtolower($key->name);
+
         return array_key_exists($index_name, $array) ? trim($array[$index_name]) : false;
     }
 
@@ -274,73 +291,87 @@ abstract class Importer
      * @return User Model w/ matching name
      * @internal param array $user_array User details parsed from csv
      */
-    protected function createOrFetchUser($row)
+    protected function createOrFetchUser($row, $type = 'user')
     {
+
         $user_array = [
-            'full_name' => $this->findCsvMatch($row, "full_name"),
-            'email'     => $this->findCsvMatch($row, "email"),
+            'full_name' => $this->findCsvMatch($row, 'full_name'),
+            'first_name' => $this->findCsvMatch($row, 'first_name'),
+            'last_name' => $this->findCsvMatch($row, 'last_name'),
+            'email'     => $this->findCsvMatch($row, 'email'),
             'manager_id'=>  '',
             'department_id' =>  '',
-            'username'  => $this->findCsvMatch($row, "username"),
+            'username'  => $this->findCsvMatch($row, 'username'),
             'activated'  => $this->fetchHumanBoolean($this->findCsvMatch($row, 'activated')),
+            'remote'    => $this->fetchHumanBoolean(($this->findCsvMatch($row, 'remote'))),
         ];
 
-        // Maybe we're lucky and the user already exists.
-        if($user = User::where('username', $user_array['username'])->first()) {
-            $this->log('User '.$user_array['username'].' already exists');
-            return $user;
+        if ($type == 'manager') {
+            $user_array['full_name'] = $this->findCsvMatch($row, 'manager');
+            $user_array['username'] = $this->findCsvMatch($row, 'manager_username');
         }
 
-        // If the full name is empty, bail out--we need this to extract first name (at the very least)
-        if(empty($user_array['full_name'])) {
-            $this->log('Insufficient user data provided (Full name is required)- skipping user creation, just adding asset');
-            return false;
-        }
-
-        // Is the user actually an ID?
-        if($user = $this->findUserByNumber($user_array['full_name'])) {
-            return $user;
-        }
-        $this->log('User does not appear to be an id with number: '.$user_array['full_name'].'.  Continuing through our processes');
-
-        // Populate email if it does not exist.
-        if(empty($user_array['email'])) {
-            $user_array['email'] = User::generateEmailFromFullName($user_array['full_name']);
-        }
-
-        $user_formatted_array = User::generateFormattedNameFromFullName($user_array['full_name'], Setting::getSettings()->username_format);
-        $user_array['first_name'] = $user_formatted_array['first_name'];
-        $user_array['last_name'] = $user_formatted_array['last_name'];
-
-        if (empty($user_array['username'])) {
-            $user_array['username'] = $user_formatted_array['username'];
-            if ($this->usernameFormat =='email') {
-                $user_array['username'] = $user_array['email'];
+        // Maybe we're lucky and the username was passed and it already exists.
+        if (!empty($user_array['username'])) {
+            if ($user = User::where('username', $user_array['username'])->first()) {
+                $this->log('User '.$user_array['username'].' already exists');
+                return $user;
             }
         }
 
-        // Does this ever actually fire??
-        // Check for a matching user after trying to guess username.
-        if ($user = User::where('username', $user_array['username'])->first()) {
-            $this->log('User '.$user_array['username'].' already exists');
-            return $user;
-        }
 
-        // If at this point we have not found a username or first name, bail out in shame.
-        if(empty($user_array['username']) || empty($user_array['first_name'])) {
+        // If the full name and username is empty, bail out--we need this to extract first name (at the very least)
+        if ((empty($user_array['username'])) && (empty($user_array['full_name'])) && (empty($user_array['first_name']))) {
+            $this->log('Insufficient user data provided (Full name, first name or username is required) - skipping user creation.');
+            \Log::debug('User array: ');
+            \Log::debug(print_r($user_array, true));
+            \Log::debug(print_r($row, true));
             return false;
         }
 
-        // No Luck, let's create one.
+
+        // Populate email if it does not exist.
+        if (empty($user_array['email'])) {
+            $user_array['email'] = User::generateEmailFromFullName($user_array['full_name']);
+        }
+
+        // Get some variables for $user_formatted_array in case we need them later
+        $user_formatted_array = User::generateFormattedNameFromFullName($user_array['full_name'], Setting::getSettings()->username_format);
+
+        if (empty($user_array['first_name'])) {
+            // Get some fields for first name and last name based off of full name
+            $user_array['first_name'] = $user_formatted_array['first_name'];
+            $user_array['last_name'] = $user_formatted_array['last_name'];
+        }
+
+        if (empty($user_array['username'])) {
+            $user_array['username'] = $user_formatted_array['username'];
+            if ($this->usernameFormat == 'email') {
+                $user_array['username'] = $user_array['email'];
+            }
+
+            // Check for a matching username one more time after trying to guess username.
+            if ($user = User::where('username', $user_array['username'])->first()) {
+                $this->log('User '.$user_array['username'].' already exists');
+                return $user;
+            }
+        }
+
+        // If at this point we have not found a username or first name, bail out in shame.
+        if (empty($user_array['username']) || empty($user_array['first_name'])) {
+            return false;
+        }
+
+        // No luck finding a user on username or first name, let's create one.
         $user = new User;
-        $user->first_name    = $user_array['first_name'];
-        $user->last_name     = $user_array['last_name'];
-        $user->username      = $user_array['username'];
-        $user->email         = $user_array['email'];
-        $user->manager_id    = $user_array['manager_id'] ?? null;
+        $user->first_name = $user_array['first_name'];
+        $user->last_name = $user_array['last_name'];
+        $user->username = $user_array['username'];
+        $user->email = $user_array['email'];
+        $user->manager_id = $user_array['manager_id'] ?? null;
         $user->department_id = $user_array['department_id'] ?? null;
-        $user->activated     = 1;
-        $user->password      = $this->tempPassword;
+        $user->activated = 1;
+        $user->password = $this->tempPassword;
 
         \Log::debug('Creating a user with the following attributes: '.print_r($user_array, true));
 
@@ -348,7 +379,9 @@ abstract class Importer
             $this->log('User '.$user_array['username'].' created');
             return $user;
         }
-        $this->logError($user, 'User "' . $user_array['username'] . '" was not able to be created.');
+
+        $this->logError($user, 'User "'.$user_array['username'].'" was not able to be created.');
+
         return false;
     }
 
@@ -362,6 +395,7 @@ abstract class Importer
         // A number was given instead of a name
         if (is_numeric($user_name)) {
             $this->log('User '.$user_name.' is a number - lets see if it matches a user id');
+
             return User::find($user_name);
         }
     }
@@ -442,6 +476,7 @@ abstract class Importer
 
         return $this;
     }
+
     /**
      * Sets the value of usernameFormat.
      *
@@ -458,7 +493,7 @@ abstract class Importer
 
     public function fetchHumanBoolean($value)
     {
-       return (int) filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        return (int) filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -471,11 +506,12 @@ abstract class Importer
      */
     public function createOrFetchDepartment($user_department_name)
     {
-        if ($user_department_name!='') {
+        if ($user_department_name != '') {
             $department = Department::where('name', '=', $user_department_name)->first();
 
             if ($department) {
-                $this->log('A matching Department ' . $user_department_name . ' already exists');
+                $this->log('A matching Department '.$user_department_name.' already exists');
+
                 return $department->id;
             }
 
@@ -483,7 +519,8 @@ abstract class Importer
             $department->name = $user_department_name;
 
             if ($department->save()) {
-                $this->log('Department ' . $user_department_name . ' was created');
+                $this->log('Department '.$user_department_name.' was created');
+
                 return $department->id;
             }
             $this->logError($department, 'Department');
@@ -505,10 +542,12 @@ abstract class Importer
         $manager = User::where('first_name', '=', $user_manager_first_name)
             ->where('last_name', '=', $user_manager_last_name)->first();
         if ($manager) {
-            $this->log('A matching Manager ' . $user_manager_first_name . ' '. $user_manager_last_name . ' already exists');
+            $this->log('A matching Manager '.$user_manager_first_name.' '.$user_manager_last_name.' already exists');
+
             return $manager->id;
         }
-        $this->log('No matching Manager ' . $user_manager_first_name . ' '. $user_manager_last_name . ' found. If their user account is being created through this import, you should re-process this file again. ');
+        $this->log('No matching Manager '.$user_manager_first_name.' '.$user_manager_last_name.' found. If their user account is being created through this import, you should re-process this file again. ');
+
         return null;
     }
 }

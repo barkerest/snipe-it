@@ -1,25 +1,33 @@
 <?php
 
-return array(
+return [
 
     'asset_tag'   	=> 'Etiqueta',
     'asset_model'       => 'Modelo',
-    'book_value'  	=> 'Valor',
+    'assigned_to'   => 'Asignado a',
+    'book_value'  	=> 'Valor Actual',
     'change' 		=> 'Operación',
     'checkout_date' => 'Fecha de asignación',
     'checkoutto' 	=> 'Asignado',
+    'components_cost' => 'Coste total de componentes',
+    'current_value' => 'Valor Actual',
     'diff' 			=> 'Diferencia',
     'dl_csv' 		=> 'Descargar CSV',
     'eol' 			=> 'EOL',
     'id'      		=> 'ID',
+    'last_checkin_date' => 'Last Checkin Date',
     'location' 		=> 'Localización',
     'purchase_cost'	=> 'Costo',
     'purchase_date'	=> 'Comprado',
     'serial'   		=> 'N. Serie',
     'status'   		=> 'Estado',
     'title'      	=> 'Equipo ',
-    'image'		=> 'Imagen de dispositivo',
+    'image'		    => 'Imagen de dispositivo',
     'days_without_acceptance' => 'Días Sin Aceptación',
-    'monthly_depreciation' => 'Depreciación mensual'
-
-);
+    'monthly_depreciation' => 'Depreciación mensual',
+    'assigned_to'    => 'Asignado a',
+    'requesting_user' => 'Solicitando usuario',
+    'requested_date' => 'Fecha solicitada',
+    'changed'       => 'Cambiado',
+    'icon' => 'Ícono',
+];

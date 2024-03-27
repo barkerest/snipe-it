@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
@@ -6,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\CustomFieldsetsTransformer;
 use App\Http\Transformers\CustomFieldsTransformer;
 use App\Models\CustomFieldset;
+use App\Models\CustomField;
 use Illuminate\Http\Request;
 use Redirect;
 use View;
@@ -20,47 +22,43 @@ use View;
  * @author [Brady Wetherington] [<uberbrady@gmail.com>]
  * @author [Josh Gibson]
  */
-
 class CustomFieldsetsController extends Controller
 {
-
     /**
-    * Shows the given fieldset and its fields
-    * @author [A. Gianotto] [<snipe@snipe.net>]
-    * @author [Josh Gibson]
-    * @param int $id
-    * @since [v1.8]
-    * @return View
-    */
+     * Shows the given fieldset and its fields
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @author [Josh Gibson]
+     * @param int $id
+     * @since [v1.8]
+     * @return View
+     */
     public function index()
     {
-        $this->authorize('index', CustomFieldset::class);
+        $this->authorize('index', CustomField::class);
         $fieldsets = CustomFieldset::withCount('fields as fields_count', 'models as models_count')->get();
-        return (new CustomFieldsetsTransformer)->transformCustomFieldsets($fieldsets, $fieldsets->count());
 
+        return (new CustomFieldsetsTransformer)->transformCustomFieldsets($fieldsets, $fieldsets->count());
     }
 
     /**
-    * Shows the given fieldset and its fields
-    * @author [A. Gianotto] [<snipe@snipe.net>]
-    * @author [Josh Gibson]
-    * @param int $id
-    * @since [v1.8]
-    * @return View
-    */
+     * Shows the given fieldset and its fields
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @author [Josh Gibson]
+     * @param int $id
+     * @since [v1.8]
+     * @return View
+     */
     public function show($id)
     {
-      $this->authorize('view', CustomFieldset::class);
+        $this->authorize('view', CustomField::class);
         if ($fieldset = CustomFieldset::find($id)) {
             return (new CustomFieldsetsTransformer)->transformCustomFieldset($fieldset);
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/custom_fields/message.fieldset.does_not_exist')), 200);
-
     }
 
-
-     /**
+    /**
      * Update the specified resource in storage.
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
@@ -71,7 +69,7 @@ class CustomFieldsetsController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->authorize('update', CustomFieldset::class);
+        $this->authorize('update', CustomField::class);
         $fieldset = CustomFieldset::findOrFail($id);
         $fieldset->fill($request->all());
 
@@ -81,7 +79,6 @@ class CustomFieldsetsController extends Controller
 
         return response()->json(Helper::formatStandardApiResponse('error', null, $fieldset->getErrors()));
     }
-
 
     /**
      * Store a newly created resource in storage.
@@ -93,17 +90,28 @@ class CustomFieldsetsController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('create', CustomFieldset::class);
+        $this->authorize('create', CustomField::class);
         $fieldset = new CustomFieldset;
         $fieldset->fill($request->all());
 
         if ($fieldset->save()) {
+            // Sync fieldset with auto_add_to_fieldsets
+            $fields = CustomField::select('id')->where('auto_add_to_fieldsets', '=', '1')->get();
+
+            if ($fields->count() > 0) {
+
+                foreach ($fields as $field) {
+                    $field_ids[] = $field->id;
+                }
+
+                $fieldset->fields()->sync($field_ids);
+            }
+
             return response()->json(Helper::formatStandardApiResponse('success', $fieldset, trans('admin/custom_fields/message.fieldset.create.success')));
         }
+
         return response()->json(Helper::formatStandardApiResponse('error', null, $fieldset->getErrors()));
-
     }
-
 
     /**
      * Delete a custom fieldset.
@@ -114,24 +122,21 @@ class CustomFieldsetsController extends Controller
      */
     public function destroy($id)
     {
-        $this->authorize('delete', CustomFieldset::class);
+        $this->authorize('delete', CustomField::class);
         $fieldset = CustomFieldset::findOrFail($id);
 
         $modelsCount = $fieldset->models->count();
         $fieldsCount = $fieldset->fields->count();
 
-        if (($modelsCount > 0) || ($fieldsCount > 0) ){
+        if (($modelsCount > 0) || ($fieldsCount > 0)) {
             return response()->json(Helper::formatStandardApiResponse('error', null, 'Fieldset is in use.'));
         }
 
-         if ($fieldset->delete()) {
-             return response()->json(Helper::formatStandardApiResponse('success', null,  trans('admin/custom_fields/message.fieldset.delete.success')));
-         }
+        if ($fieldset->delete()) {
+            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/custom_fields/message.fieldset.delete.success')));
+        }
 
         return response()->json(Helper::formatStandardApiResponse('error', null, 'Unspecified error'));
-
-
-
     }
 
     /**
@@ -144,9 +149,10 @@ class CustomFieldsetsController extends Controller
      */
     public function fields($id)
     {
-        $this->authorize('view', CustomFieldset::class);
+        $this->authorize('view', CustomField::class);
         $set = CustomFieldset::findOrFail($id);
         $fields = $set->fields;
+
         return (new CustomFieldsTransformer)->transformCustomFields($fields, $fields->count());
     }
 
@@ -160,7 +166,7 @@ class CustomFieldsetsController extends Controller
      */
     public function fieldsWithDefaultValues($fieldsetId, $modelId)
     {
-        $this->authorize('view', CustomFieldset::class);
+        $this->authorize('view', CustomField::class);
 
         $set = CustomFieldset::findOrFail($fieldsetId);
 

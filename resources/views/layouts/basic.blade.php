@@ -8,10 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ ($snipeSettings) && ($snipeSettings->site_name) ? $snipeSettings->site_name : 'Snipe-IT' }}</title>
 
-    <link rel="shortcut icon" type="image/ico" href="{{ ($snipeSettings) && ($snipeSettings->favicon!='') ?  Storage::disk('public')->url('').e($snipeSettings->favicon) : 'favicon.ico' }} ">
+    <link rel="shortcut icon" type="image/ico" href="{{ ($snipeSettings) && ($snipeSettings->favicon!='') ?  Storage::disk('public')->url(e($snipeSettings->favicon)) : config('app.url').'/favicon.ico' }}">
     {{-- stylesheets --}}
     <link rel="stylesheet" href="{{ url(mix('css/dist/all.css')) }}">
-    <link rel="shortcut icon" type="image/ico" href="{{ url(asset('favicon.ico')) }}">
 
     <script nonce="{{ csrf_token() }}">
         window.snipeit = {
@@ -20,6 +19,7 @@
             }
         };
     </script>
+    @livewireStyles
 
 
     @if (($snipeSettings) && ($snipeSettings->header_color))
@@ -55,7 +55,7 @@
 
     @if (($snipeSettings) && ($snipeSettings->logo!=''))
         <center>
-            <img id="login-logo" src="{{ Storage::disk('public')->url('').e($snipeSettings->logo) }}">
+            <a href="{{ config('app.url') }}"><img id="login-logo" src="{{ Storage::disk('public')->url('').e($snipeSettings->logo) }}"></a>
         </center>
     @endif
   <!-- Content -->
@@ -74,6 +74,7 @@
 
 
     @stack('js')
+    @livewireScripts
 </body>
 
 </html>

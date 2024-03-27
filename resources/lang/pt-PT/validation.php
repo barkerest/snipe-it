@@ -1,6 +1,6 @@
 <?php
 
-return array(
+return [
 
     /*
     |--------------------------------------------------------------------------
@@ -43,12 +43,14 @@ return array(
     'file'                 => 'O atributo: deve ser um arquivo.',
     'filled'               => 'O campo: atributo deve ter um valor.',
     'image'                => 'O :attribute tem que ser uma imagem.',
+    'import_field_empty'    => 'O valor para :fieldname não pode ser nulo.',
     'in'                   => 'O :attribute selecionado é inválido.',
     'in_array'             => 'O campo: atributo não existe em: outro.',
     'integer'              => 'O :attribute tem que ser um inteiro.',
     'ip'                   => 'O :attribute tem que ser um IP válido.',
     'ipv4'                 => 'O atributo: deve ser um endereço IPv4 válido.',
     'ipv6'                 => 'O atributo deve ser um endereço IPv6 válido.',
+    'is_unique_department' => 'O :attribute deve ser único para esta localização da empresa',
     'json'                 => 'O atributo: deve ser uma string JSON válida.',
     'max'                  => [
         'numeric' => 'O :attribute não pode ser maior do que :max.',
@@ -64,6 +66,9 @@ return array(
         'string'  => 'O :attribute deve conter pelos menos :min caracteres.',
         'array'   => 'O atributo deve ter pelo menos: itens mínimos.',
     ],
+    'starts_with'          => 'O :attribute deve começar com um dos seguintes: :values.',
+    'ends_with'            => 'O :attribute deve terminar com um dos seguintes: :values.',
+
     'not_in'               => 'O :attribute selecionado é inválido.',
     'numeric'              => ':attribute tem que ser um número.',
     'present'              => 'O campo: atributo deve estar presente.',
@@ -85,21 +90,21 @@ return array(
     ],
     'string'               => 'O atributo deve ser uma string.',
     'timezone'             => 'O atributo: deve ser uma zona válida.',
+    'two_column_unique_undeleted' => 'O :attribute deve ser único entre :table1 e :table2. ',
     'unique'               => 'Este :attribute já existe.',
     'uploaded'             => 'O atributo: não foi possível carregar.',
     'url'                  => 'O formato do :attribute é inválido.',
-    "unique_undeleted"     => "O :atribute deve ser único.",
-
-    /*
-    |--------------------------------------------------------------------------
-    | Custom Validation Language Lines
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify custom validation messages for attributes using the
-    | convention "attribute.rule" to name the lines. This makes it quick to
-    | specify a specific custom language line for a given attribute rule.
-    |
-    */
+    'unique_undeleted'     => 'O :atribute deve ser único.',
+    'non_circular'         => 'O :attribute não deve criar uma referência circular.',
+    'not_array'            => ':attribute não pode ser um array.',
+    'disallow_same_pwd_as_user_fields' => 'A senha não pode ser igual ao nome de utilizador.',
+    'letters'              => 'A senha deve conter no mínimo uma letra.',
+    'numbers'              => 'A senha deve conter no mínimo um símbolo.',
+    'case_diff'            => 'A senha deve usar maiúsculas e minúsculas.',
+    'symbols'              => 'A senha deve conter símbolos.',
+    'gte'                  => [
+        'numeric'          => 'Valor não pode ser negativo'
+    ],
 
 
     /*
@@ -114,11 +119,23 @@ return array(
     */
 
     'custom' => [
-        'alpha_space' => "O campo: atributo contém um caractere que não é permitido.",
-        "email_array"      => "Um ou mais endereços de e-mail são inválidos.",
-        "hashed_pass"      => "Sua senha atual está incorreta",
+        'alpha_space' => 'O campo: atributo contém um caractere que não é permitido.',
+        'email_array'      => 'Um ou mais endereços de e-mail são inválidos.',
+        'hashed_pass'      => 'Sua senha atual está incorreta',
         'dumbpwd'          => 'Essa senha é muito comum.',
-        "statuslabel_type" => "Você deve selecionar um tipo de etiqueta de status válido",
+        'statuslabel_type' => 'Você deve selecionar um tipo de etiqueta de status válido',
+
+        // date_format validation with slightly less stupid messages. It duplicates a lot, but it gets the job done :(
+        // We use this because the default error message for date_format is reflects php Y-m-d, which non-PHP
+        // people won't know how to format. 
+        'purchase_date.date_format'     => 'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+        'last_audit_date.date_format'   =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD hh:mm:ss',
+        'expiration_date.date_format'   =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+        'termination_date.date_format'  =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+        'expected_checkin.date_format'  =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+        'start_date.date_format'        =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+        'end_date.date_format'          =>  'O :attribute deve ser uma data válida em formato YYYY-MM-DD',
+
     ],
 
     /*
@@ -134,4 +151,4 @@ return array(
 
     'attributes' => [],
 
-);
+];

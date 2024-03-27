@@ -1,6 +1,6 @@
 <?php
 
-return array(
+return [
 
     'undeployable' 		=> '<strong>Atención: </strong> Este equipo está marcado como no isntalabre.
                         Si no es correcto, actualiza su estado.',
@@ -8,76 +8,84 @@ return array(
     'does_not_exist_or_not_requestable' => 'Buen intento. El activo no existe o no es solicitable.',
     'assoc_users'	 	=> 'Equipo asignado a un usuario, no se puede eliminar.',
 
-    'create' => array(
+    'create' => [
         'error'   		=> 'Equipo no creado, intentalo de nuevo. :(',
-        'success' 		=> 'Equipo creado. :)'
-    ),
+        'success' 		=> 'Equipo creado. :)',
+        'success_linked' => 'Activo con etiqueta :tag creado con éxito. <strong><a href=":link" style="color: white;">Haga clic aquí para ver</a></strong>.',
+    ],
 
-    'update' => array(
+    'update' => [
         'error'   			=> 'Equipo no actualizado, intentalo de nuevo',
         'success' 			=> 'Equipo actualizado.',
         'nothing_updated'	=>  'Ningún campo fue seleccionado, por lo que nada ha sido actualizado.',
-    ),
+        'no_assets_selected'  =>  'Ningún recurso fue seleccionado, por lo que no se actualizó nada.',
+        'assets_do_not_exist_or_are_invalid' => 'Los activos seleccionados no se pueden actualizar.',
+    ],
 
-    'restore' => array(
+    'restore' => [
         'error'   		=> 'El equipo no fue restaurado, por favor intente nuevamente',
-        'success' 		=> 'Equipo restaurado correctamente.'
-    ),
+        'success' 		=> 'Equipo restaurado correctamente.',
+        'bulk_success' 		=> 'Equipo restaurado correctamente.',
+        'nothing_updated'   => 'No se seleccionaron activos, por lo que no se restauró nada.', 
+    ],
 
-    'audit' => array(
+    'audit' => [
         'error'   		=> 'La auditoría de activos no tuvo éxito. Vuelve a intentarlo.',
-        'success' 		=> 'Auditoría de activos registrada correctamente.'
-    ),
+        'success' 		=> 'Auditoría de activos registrada correctamente.',
+    ],
 
 
-    'deletefile' => array(
+    'deletefile' => [
         'error'   => 'Archivo no eliminado. Por favor, vuelva a intentarlo.',
         'success' => 'Archivo eliminado correctamente.',
-    ),
+    ],
 
-    'upload' => array(
+    'upload' => [
         'error'   => 'Archivo(s) no cargado. Por favor, vuelva a intentarlo.',
         'success' => 'Archivo(s) cargado correctamente.',
         'nofiles' => 'No ha seleccionado ningun archivo para ser cargado, o el archivo que seleccionó es demasiado grande',
         'invalidfiles' => 'Uno o más sus archivos es demasiado grande o es de un tipo no permitido. Los tipos de archivo permitidos son png, gif, jpg, doc, docx, pdf y txt.',
-    ),
+    ],
 
-    'import' => array(
+    'import' => [
         'error'                 => 'Algunos elementos no se pudieron importar correctamente.',
         'errorDetail'           => 'Estos elementos no pudieron importarse debido a errores.',
-        'success'               => "Tu archivo ha sido importado",
-        'file_delete_success'   => "Tu archivo ha sido eliminado con éxito",
-        'file_delete_error'      => "No pudimos eliminar tu archivo",
-    ),
+        'success'               => 'Tu archivo ha sido importado',
+        'file_delete_success'   => 'Tu archivo ha sido eliminado con éxito',
+        'file_delete_error'      => 'No pudimos eliminar tu archivo',
+        'file_missing' => 'Falta el archivo seleccionado',
+        'header_row_has_malformed_characters' => 'Uno o más atributos en la fila del encabezado contienen caracteres UTF-8 mal formados',
+        'content_row_has_malformed_characters' => 'Uno o más atributos en la primera fila de contenido contienen caracteres UTF-8 mal formados',
+    ],
 
 
-    'delete' => array(
+    'delete' => [
         'confirm'   	=> 'Estás seguro que quieres eliminar el equipo?',
         'error'   		=> 'Equipo no eliminado, intentalo de nuevo.',
         'nothing_updated'   => 'No se seleccionaron los activos, por lo que no se eliminó nada.',
-        'success' 		=> 'Equipo eliminado.'
-    ),
+        'success' 		=> 'Equipo eliminado.',
+    ],
 
-    'checkout' => array(
+    'checkout' => [
         'error'   		=> 'Equipo no asignado, intentalo de nuevo',
         'success' 		=> 'Equipo asignado.',
         'user_does_not_exist' => 'Este usuario no es correcto. Intentalo de nuevo.',
         'not_available' => '¡Ese artículo no está disponible para retirada!',
-        'no_assets_selected' => 'Debes seleccionar al menos un elemento de la lista'
-    ),
+        'no_assets_selected' => 'Debes seleccionar al menos un elemento de la lista',
+    ],
 
-    'checkin' => array(
+    'checkin' => [
         'error'   		=> 'No se ha quitado el equipo. Intentalo de nuevo.',
         'success' 		=> 'Equipo quitado correctamente.',
         'user_does_not_exist' => 'Este usuario no es correcto. Intentalo de nuevo.',
         'already_checked_in'  => 'Ese activo ya se quito.',
 
-    ),
+    ],
 
-    'requests' => array(
+    'requests' => [
         'error'   		=> 'Bien no solicitado, por favor inténtelo de nuevo',
         'success' 		=> 'Bien solicitado correctamente.',
-        'canceled'      => 'Solicitud de retirada cancelada con éxito'
-    )
+        'canceled'      => 'Solicitud de retirada cancelada con éxito',
+    ],
 
-);
+];

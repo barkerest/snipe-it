@@ -6,63 +6,6 @@
     @parent
 @stop
 
-{{-- Right header --}}
-@section('header_right')
-
-    @can('manage', \App\Models\Asset::class)
-        <div class="dropdown pull-right">
-            <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">{{ trans('button.actions') }}
-                <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu pull-right" role="menu">
-                @if (($asset->assetstatus) && ($asset->assetstatus->deployable=='1'))
-                    @if ($asset->assigned_to != '')
-                        @can('checkin', \App\Models\Asset::class)
-                            <li role="menuitem">
-                                <a href="{{ route('checkin/hardware', $asset->id) }}">
-                                    {{ trans('admin/hardware/general.checkin') }}
-                                </a>
-                            </li>
-                        @endcan
-                    @else
-                        @can('checkout', \App\Models\Asset::class)
-                            <li role="menuitem">
-                                <a href="{{ route('checkout/hardware', $asset->id)  }}">
-                                    {{ trans('admin/hardware/general.checkout') }}
-                                </a>
-                            </li>
-                        @endcan
-                    @endif
-                @endif
-
-                @can('update', \App\Models\Asset::class)
-                    <li role="menuitem">
-                        <a href="{{ route('hardware.edit', $asset->id) }}">
-                            {{ trans('admin/hardware/general.edit') }}
-                        </a>
-                    </li>
-                @endcan
-
-                @can('create', \App\Models\Asset::class)
-                    <li role="menuitem">
-                        <a href="{{ route('clone/hardware', $asset->id) }}">
-                            {{ trans('admin/hardware/general.clone') }}
-                        </a>
-                    </li>
-                @endcan
-
-                @can('audit', \App\Models\Asset::class)
-                    <li role="menuitem">
-                        <a href="{{ route('asset.audit.create', $asset->id)  }}">
-                            {{ trans('general.audit') }}
-                        </a>
-                    </li>
-                @endcan
-            </ul>
-        </div>
-    @endcan
-@stop
-
 {{-- Page content --}}
 @section('content')
 
@@ -71,8 +14,7 @@
         @if (!$asset->model)
             <div class="col-md-12">
                 <div class="callout callout-danger">
-                    <h2>NO MODEL ASSOCIATED</h2>
-                        <p>This will break things in weird and horrible ways. Edit this asset now to assign it a model. </p>
+                      <p><strong>{{ trans('admin/models/message.no_association') }}</strong> {{ trans('admin/models/message.no_association_fix') }}</p>
                 </div>
             </div>
         @endif
@@ -80,10 +22,9 @@
         @if ($asset->deleted_at!='')
             <div class="col-md-12">
                 <div class="alert alert-danger">
-                    <i class="fa fa-exclamation-circle faa-pulse animated" aria-hidden="true"></i>
-                    <strong>WARNING: </strong>
-                    This asset has been deleted.
-                    You must <a href="{{ route('restore/hardware', $asset->id) }}">restore it</a> before you can assign it to someone.
+                    <i class="fas fa-exclamation-triangle faa-pulse animated" aria-hidden="true"></i>
+                    <strong>{{ trans('general.notification_warning') }} </strong>
+                    {{ trans('general.asset_deleted_warning') }}
                 </div>
             </div>
         @endif
@@ -96,93 +37,129 @@
             <!-- Custom Tabs -->
             <div class="nav-tabs-custom">
                 <ul class="nav nav-tabs">
+
                     <li class="active">
                         <a href="#details" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-info-circle" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.details') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                          <i class="fas fa-info-circle fa-2x"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('admin/users/general.info') }}</span>
                         </a>
                     </li>
+
                     <li>
                         <a href="#software" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-floppy-o" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.licenses') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                            <i class="far fa-save fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.licenses') }}
+                            {!! ($asset->licenses->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->licenses->count()).'</badge>' : '' !!}
+                          </span>
                         </a>
                     </li>
+
                     <li>
                         <a href="#components" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-hdd-o" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.components') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                            <i class="far fa-hdd fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.components') }}
+                            {!! ($asset->components->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->components->count()).'</badge>' : '' !!}
+                          </span>
                         </a>
                     </li>
+
                     <li>
                         <a href="#assets" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-barcode" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.assets') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                            <i class="fas fa-barcode fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.assets') }}
+                            {!! ($asset->assignedAssets()->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->assignedAssets()->count()).'</badge>' : '' !!}
+
+                          </span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#maintenances" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-wrench" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.maintenances') }}
-            </span>
-                        </a>
-                    </li>
+
+
                     <li>
                         <a href="#history" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-history" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.history') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                            <i class="fas fa-history fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.history') }}
+                          </span>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="#maintenances" data-toggle="tab">
+                          <span class="hidden-lg hidden-md">
+                            <i class="fas fa-wrench fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.maintenances') }}
+                            {!! ($asset->assetmaintenances()->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->assetmaintenances()->count()).'</badge>' : '' !!}
+                          </span>
+                        </a>
+                    </li>
+
                     <li>
                         <a href="#files" data-toggle="tab">
-            <span class="hidden-lg hidden-md">
-              <i class="fa fa-files-o" aria-hidden="true"></i>
-            </span>
-                            <span class="hidden-xs hidden-sm">
-              {{ trans('general.files') }}
-            </span>
+                          <span class="hidden-lg hidden-md">
+                            <i class="far fa-file fa-2x" aria-hidden="true"></i>
+                          </span>
+                          <span class="hidden-xs hidden-sm">{{ trans('general.files') }}
+                            {!! ($asset->uploads->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->uploads->count()).'</badge>' : '' !!}
+                          </span>
                         </a>
                     </li>
+
+                    <li>
+                    <a href="#modelfiles" data-toggle="tab">
+                          <span class="hidden-lg hidden-md">
+                              <i class="fa-solid fa-laptop-file fa-2x" aria-hidden="true"></i>
+                          </span>
+                        <span class="hidden-xs hidden-sm">
+                            {{ trans('general.additional_files') }}
+                            {!! ($asset->model) && ($asset->model->uploads->count() > 0 ) ? '<badge class="badge badge-secondary">'.number_format($asset->model->uploads->count()).'</badge>' : '' !!}
+                          </span>
+                    </a>
+                    </li>
+
+
                     @can('update', \App\Models\Asset::class)
                         <li class="pull-right">
                             <a href="#" data-toggle="modal" data-target="#uploadFileModal">
-                                <i class="fa fa-paperclip" aria-hidden="true"></i>
+                                <i class="fas fa-paperclip" aria-hidden="true"></i>
                                 {{ trans('button.upload') }}
                             </a>
                         </li>
                     @endcan
+
+
                 </ul>
+
                 <div class="tab-content">
                     <div class="tab-pane fade in active" id="details">
                         <div class="row">
                             <div class="col-md-8">
 
-
                                 <!-- start striped rows -->
                                 <div class="container row-striped">
+
+                                    @if ($asset->deleted_at!='')
+                                        <div class="row">
+                                            <div class="col-md-2">
+                                                <span class="text-danger"><strong>{{ trans('general.deleted') }}</strong></span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->deleted_at, 'date', false) }}
+
+                                            </div>
+                                        </div>
+                                    @endif
+
+
 
                                     @if ($asset->assetstatus)
 
@@ -192,20 +169,20 @@
                                             </div>
                                             <div class="col-md-6">
                                                 @if (($asset->assignedTo) && ($asset->deleted_at==''))
-                                                    <i class="fa fa-circle text-blue"></i>
+                                                    <i class="fas fa-circle text-blue"></i>
                                                     {{ $asset->assetstatus->name }}
                                                     <label class="label label-default">{{ trans('general.deployed') }}</label>
 
-                                                    <i class="fa fa-long-arrow-right" aria-hidden="true"></i>
+                                                    <i class="fas fa-long-arrow-alt-right" aria-hidden="true"></i>
                                                     {!!  $asset->assignedTo->present()->glyph()  !!}
                                                     {!!  $asset->assignedTo->present()->nameUrl() !!}
                                                 @else
                                                     @if (($asset->assetstatus) && ($asset->assetstatus->deployable=='1'))
-                                                        <i class="fa fa-circle text-green"></i>
+                                                        <i class="fas fa-circle text-green"></i>
                                                     @elseif (($asset->assetstatus) && ($asset->assetstatus->pending=='1'))
-                                                        <i class="fa fa-circle text-orange"></i>
-                                                    @elseif (($asset->assetstatus) && ($asset->assetstatus->archived=='1'))
-                                                        <i class="fa fa-times text-red"></i>
+                                                        <i class="fas fa-circle text-orange"></i>
+                                                    @else
+                                                        <i class="fas fa-times text-red"></i>
                                                     @endif
                                                     <a href="{{ route('statuslabels.show', $asset->assetstatus->id) }}">
                                                         {{ $asset->assetstatus->name }}</a>
@@ -244,11 +221,14 @@
                                                 <strong>{{ trans('admin/hardware/form.serial') }}</strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ $asset->serial  }}
+                                                <span class="js-copy">{{ $asset->serial  }}</span>
+
+                                                <i class="fa-regular fa-clipboard js-copy-link" data-clipboard-target=".js-copy" aria-hidden="true" data-tooltip="true" data-placement="top" title="{{ trans('general.copy_to_clipboard') }}">
+                                                    <span class="sr-only">{{ trans('general.copy_to_clipboard') }}</span>
+                                                </i>
                                             </div>
                                         </div>
                                     @endif
-
 
                                     @if ((isset($audit_log)) && ($audit_log->created_at))
                                         <div class="row">
@@ -258,7 +238,11 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($audit_log->created_at, 'date', false) }} (by {{ link_to_route('users.show', $audit_log->user->present()->fullname(), [$audit_log->user->id]) }})
+                                                {{ \App\Helpers\Helper::getFormattedDateObject($audit_log->created_at, 'date', false) }}
+                                                @if ($audit_log->user)
+                                                    (by {{ link_to_route('users.show', $audit_log->user->present()->fullname(), [$audit_log->user->id]) }})
+                                                @endif
+
                                             </div>
                                         </div>
                                     @endif
@@ -271,7 +255,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->next_audit_date, 'date', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->next_audit_date, 'date', false) }}
                                             </div>
                                         </div>
                                     @endif
@@ -284,7 +268,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                <ul class="list-unstyled" style="line-height: 25px;">
+                                                <ul class="list-unstyled">
                                                     @can('view', \App\Models\Manufacturer::class)
 
                                                         <li>
@@ -299,25 +283,37 @@
 
                                                     @if (($asset->model) && ($asset->model->manufacturer->url))
                                                         <li>
-                                                            <i class="fa fa-globe" aria-hidden="true"></i>
-                                                            <a href="{{ $asset->model->manufacturer->url }}">
+                                                            <i class="fas fa-globe-americas" aria-hidden="true"></i>
+                                                            <a href="{{ $asset->model->manufacturer->url }}" target="_blank">
                                                                 {{ $asset->model->manufacturer->url }}
+                                                                <i class="fa fa-external-link" aria-hidden="true"></i>
                                                             </a>
                                                         </li>
                                                     @endif
 
                                                     @if (($asset->model) && ($asset->model->manufacturer->support_url))
                                                         <li>
-                                                            <i class="fa fa-life-ring" aria-hidden="true"></i>
-                                                            <a href="{{ $asset->model->manufacturer->support_url }}">
+                                                            <i class="far fa-life-ring" aria-hidden="true"></i>
+                                                            <a href="{{ $asset->model->manufacturer->support_url }}" target="_blank">
                                                                 {{ $asset->model->manufacturer->support_url }}
+                                                                <i class="fa fa-external-link" aria-hidden="true"></i>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (($asset->model->manufacturer) && ($asset->model->manufacturer->warranty_lookup_url!=''))
+                                                        <li>
+                                                            <i class="far fa-wrench" aria-hidden="true"></i>
+                                                            <a href="{{ $asset->present()->dynamicWarrantyUrl() }}" target="_blank">
+                                                                {{ $asset->present()->dynamicWarrantyUrl() }}
+                                                                <i class="fa fa-external-link" aria-hidden="true"><span class="sr-only">{{ trans('admin/hardware/general.mfg_warranty_lookup', ['manufacturer' => $asset->model->manufacturer->name]) }}</span></i>
                                                             </a>
                                                         </li>
                                                     @endif
 
                                                     @if (($asset->model) && ($asset->model->manufacturer->support_phone))
                                                         <li>
-                                                            <i class="fa fa-phone" aria-hidden="true"></i>
+                                                            <i class="fas fa-phone" aria-hidden="true"></i>
                                                             <a href="tel:{{ $asset->model->manufacturer->support_phone }}">
                                                                 {{ $asset->model->manufacturer->support_phone }}
                                                             </a>
@@ -325,7 +321,8 @@
                                                     @endif
 
                                                     @if (($asset->model) && ($asset->model->manufacturer->support_email))
-                                                        <li><i class="fa fa-envelope" aria-hidden="true"></i>
+                                                        <li>
+                                                            <i class="far fa-envelope" aria-hidden="true"></i>
                                                             <a href="mailto:{{ $asset->model->manufacturer->support_email }}">
                                                                 {{ $asset->model->manufacturer->support_email }}
                                                             </a>
@@ -393,6 +390,16 @@
                                         </div>
                                     </div>
 
+                                    <!-- byod -->
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <strong>{{ trans('general.byod') }}</strong>
+                                        </div>
+                                        <div class="col-md-6">
+                                            {!! ($asset->byod=='1') ? '<i class="fas fa-check text-success" aria-hidden="true"></i> '.trans('general.yes') : '<i class="fas fa-times text-danger" aria-hidden="true"></i> '.trans('general.no')  !!}
+                                        </div>
+                                    </div>
+
                                     @if (($asset->model) && ($asset->model->fieldset))
                                         @foreach($asset->model->fieldset->fields as $field)
                                             <div class="row">
@@ -401,28 +408,45 @@
                                                         {{ $field->name }}
                                                     </strong>
                                                 </div>
-                                                <div class="col-md-6">
-                                                    @if ($field->field_encrypted=='1')
-                                                        <i class="fa fa-lock" data-toggle="tooltip" data-placement="top" title="{{ trans('admin/custom_fields/general.value_encrypted') }}"></i>
+                                                <div class="col-md-6{{ (($field->format=='URL') && ($asset->{$field->db_column_name()}!='')) ? ' ellipsis': '' }}">
+                                                    @if (($field->field_encrypted=='1') && ($asset->{$field->db_column_name()}!=''))
+                                                        <i class="fas fa-lock" data-tooltip="true" data-placement="top" title="{{ trans('admin/custom_fields/general.value_encrypted') }}" onclick="showHideEncValue(this)" id="text-{{ $field->id }}"></i>
                                                     @endif
 
                                                     @if ($field->isFieldDecryptable($asset->{$field->db_column_name()} ))
-                                                        @can('superuser')
+                                                        @can('assets.view.encrypted_custom_fields')
+                                                            <span id="text-{{ $field->id }}-to-hide">********</span>
+                                                            <span class="js-copy-{{ $field->id }}" id="text-{{ $field->id }}-to-show" style="font-size: 0px;">
                                                             @if (($field->format=='URL') && ($asset->{$field->db_column_name()}!=''))
-                                                                <a href="{{ \App\Helpers\Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}" target="_new">{{ \App\Helpers\Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}</a>
+                                                                <a href="{{ Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}" target="_new">{{ Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}</a>
+                                                            @elseif (($field->format=='DATE') && ($asset->{$field->db_column_name()}!=''))
+                                                                {{ \App\Helpers\Helper::gracefulDecrypt($field, \App\Helpers\Helper::getFormattedDateObject($asset->{$field->db_column_name()}, 'date', false)) }}
                                                             @else
-                                                                {{ \App\Helpers\Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}
+                                                                {{ Helper::gracefulDecrypt($field, $asset->{$field->db_column_name()}) }}
                                                             @endif
+                                                            </span>
+                                                            <i class="fa-regular fa-clipboard js-copy-link" data-clipboard-target=".js-copy-{{ $field->id }}" aria-hidden="true" data-tooltip="true" data-placement="top" title="{{ trans('general.copy_to_clipboard') }}">
+                                                                <span class="sr-only">{{ trans('general.copy_to_clipboard') }}</span>
+                                                            </i>
                                                         @else
                                                             {{ strtoupper(trans('admin/custom_fields/general.encrypted')) }}
                                                         @endcan
 
                                                     @else
-                                                        @if (($field->format=='URL') && ($asset->{$field->db_column_name()}!=''))
+                                                        @if (($field->format=='BOOLEAN') && ($asset->{$field->db_column_name()}!=''))
+                                                            {!! ($asset->{$field->db_column_name()} == 1) ? "<span class='fas fa-check-circle' style='color:green' />" : "<span class='fas fa-times-circle' style='color:red' />" !!}
+                                                        @elseif (($field->format=='URL') && ($asset->{$field->db_column_name()}!=''))
                                                             <a href="{{ $asset->{$field->db_column_name()} }}" target="_new">{{ $asset->{$field->db_column_name()} }}</a>
+                                                        @elseif (($field->format=='DATE') && ($asset->{$field->db_column_name()}!=''))
+                                                            {{ \App\Helpers\Helper::getFormattedDateObject($asset->{$field->db_column_name()}, 'date', false) }}
                                                         @else
                                                             {!! nl2br(e($asset->{$field->db_column_name()})) !!}
                                                         @endif
+
+                                                    @endif
+
+                                                    @if ($asset->{$field->db_column_name()}=='')
+                                                        &nbsp;
                                                     @endif
                                                 </div>
                                             </div>
@@ -438,7 +462,10 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->purchase_date, 'date', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->purchase_date, 'date', false) }}
+                                                -
+                                                {{ Carbon::parse($asset->purchase_date)->diff(Carbon::now())->format('%y years, %m months and %d days')}}
+
                                             </div>
                                         </div>
                                     @endif
@@ -458,12 +485,51 @@
                                                 @else
                                                     {{ $snipeSettings->default_currency }}
                                                 @endif
-                                                {{ \App\Helpers\Helper::formatCurrencyOutput($asset->purchase_cost)}}
+                                                {{ Helper::formatCurrencyOutput($asset->purchase_cost)}}
 
                                             </div>
                                         </div>
                                     @endif
+                                    @if(($asset->components->count() > 0) && ($asset->purchase_cost))
+                                        <div class="row">
+                                            <div class="col-md-2">
+                                                <strong>
+                                                    {{ trans('admin/hardware/table.components_cost') }}
+                                                </strong>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @if (($asset->id) && ($asset->location))
+                                                    {{ $asset->location->currency }}
+                                                @elseif (($asset->id) && ($asset->location))
+                                                    {{ $asset->location->currency }}
+                                                @else
+                                                    {{ $snipeSettings->default_currency }}
+                                                @endif
+                                                {{Helper::formatCurrencyOutput($asset->getComponentCost())}}
+                                            </div>
+                                        </div>
+                                    @endif
+                                    @if (($asset->model) && ($asset->depreciation) && ($asset->purchase_date))
+                                        <div class="row">
+                                            <div class="col-md-2">
+                                                <strong>
+                                                    {{ trans('admin/hardware/table.current_value') }}
+                                                </strong>
+                                            </div>
+                                            <div class="col-md-6">
+                                                    @if (($asset->id) && ($asset->location))
+                                                        {{ $asset->location->currency }}
+                                                    @elseif (($asset->id) && ($asset->location))
+                                                        {{ $asset->location->currency }}
+                                                    @else
+                                                        {{ $snipeSettings->default_currency }}
+                                                    @endif
+                                                    {{ Helper::formatCurrencyOutput($asset->getDepreciatedValue() )}}
 
+
+                                            </div>
+                                        </div>
+                                    @endif
                                     @if ($asset->order_number)
                                         <div class="row">
                                             <div class="col-md-2">
@@ -472,7 +538,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                #{{ $asset->order_number }}
+                                                <a href="{{ route('hardware.index', ['order_number' => $asset->order_number]) }}">#{{ $asset->order_number }}</a>
                                             </div>
                                         </div>
                                     @endif
@@ -498,7 +564,7 @@
 
 
                                     @if ($asset->warranty_months)
-                                        <div class="row{!! $asset->present()->warrantee_expires() < date("Y-m-d") ? ' warning' : '' !!}">
+                                        <div class="row">
                                             <div class="col-md-2">
                                                 <strong>
                                                     {{ trans('admin/hardware/form.warranty') }}
@@ -508,10 +574,35 @@
                                                 {{ $asset->warranty_months }}
                                                 {{ trans('admin/hardware/form.months') }}
 
-                                                ({{ trans('admin/hardware/form.expires') }}
-                                                {{ $asset->present()->warrantee_expires() }})
+                                                @if (($asset->model) && ($asset->model->manufacturer) && ($asset->model->manufacturer->warranty_lookup_url!=''))
+                                                    <a href="{{ $asset->present()->dynamicWarrantyUrl() }}" target="_blank">
+                                                        <i class="fa fa-external-link" aria-hidden="true"><span class="sr-only">{{ trans('admin/hardware/general.mfg_warranty_lookup', ['manufacturer' => $asset->model->manufacturer->name]) }}</span></i>
+                                                    </a>
+                                                @endif
                                             </div>
                                         </div>
+
+                                            <div class="row">
+                                                <div class="col-md-2">
+                                                    <strong>
+                                                        {{ trans('admin/hardware/form.warranty_expires') }}
+                                                        @if ($asset->purchase_date)
+                                                        {!! $asset->present()->warranty_expires() < date("Y-m-d") ? '<i class="fas fa-exclamation-triangle text-orange" aria-hidden="true"></i>' : '' !!}
+                                                        @endif
+
+                                                    </strong>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    @if ($asset->purchase_date)
+                                                    {{ Helper::getFormattedDateObject($asset->present()->warranty_expires(), 'date', false) }}
+                                                    -
+                                                    {{ Carbon::parse($asset->present()->warranty_expires())->diffForHumans(['parts' => 2]) }}
+                                                    @else
+                                                        {{ trans('general.na_no_purchase_date') }}
+                                                    @endif
+                                                </div>
+                                            </div>
+
                                     @endif
 
                                     @if (($asset->model) && ($asset->depreciation))
@@ -524,8 +615,7 @@
                                             <div class="col-md-6">
                                                 {{ $asset->depreciation->name }}
                                                 ({{ $asset->depreciation->months }}
-                                                {{ trans('admin/hardware/form.months') }}
-                                                )
+                                                {{ trans('admin/hardware/form.months') }})
                                             </div>
                                         </div>
                                         <div class="row">
@@ -535,18 +625,19 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                @if ($asset->time_until_depreciated()->y > 0)
-                                                    {{ $asset->time_until_depreciated()->y }}
-                                                    {{ trans('admin/hardware/form.years') }},
+                                                @if ($asset->purchase_date)
+                                                {{ Helper::getFormattedDateObject($asset->depreciated_date()->format('Y-m-d'), 'date', false) }}
+                                                -
+                                                {{ Carbon::parse($asset->depreciated_date())->diffForHumans(['parts' => 2]) }}
+                                                @else
+                                                    {{ trans('general.na_no_purchase_date') }}
                                                 @endif
-                                                {{ $asset->time_until_depreciated()->m }}
-                                                {{ trans('admin/hardware/form.months') }}
-                                                ({{ $asset->depreciated_date()->format('Y-m-d') }})
+
                                             </div>
                                         </div>
                                     @endif
 
-                                    @if (($asset->model) && ($asset->model->eol))
+                                    @if (($asset->asset_eol_date) && ($asset->purchase_date))
                                         <div class="row">
                                             <div class="col-md-2">
                                                 <strong>
@@ -554,34 +645,39 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ $asset->model->eol }}
+                                                {{ Carbon::parse($asset->asset_eol_date)->diffInMonths($asset->purchase_date) }}
                                                 {{ trans('admin/hardware/form.months') }}
 
                                             </div>
                                         </div>
-
+                                    @endif
+                                    @if ($asset->asset_eol_date)
                                         <div class="row">
                                             <div class="col-md-2">
                                                 <strong>
                                                     {{ trans('admin/hardware/form.eol_date') }}
+                                                    @if ($asset->purchase_date)
+							{!! $asset->asset_eol_date < date("Y-m-d") ? '<i class="fas fa-exclamation-triangle text-orange" aria-hidden="true"></i>' : '' !!}
+                                                    @endif
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ $asset->present()->eol_date() }}
-
-
-                                                @if ($asset->present()->months_until_eol())
-                                                    -
-                                                    @if ($asset->present()->months_until_eol()->y > 0)
-                                                        {{ $asset->present()->months_until_eol()->y }}
-                                                        {{ trans('general.years') }},
-                                                    @endif
-
-                                                    {{ $asset->present()->months_until_eol()->m }}
-                                                    {{ trans('general.months') }}
-
+                                                @if ($asset->asset_eol_date)
+                                                {{ Helper::getFormattedDateObject($asset->asset_eol_date, 'date', false) }}
+                                                -
+                                                {{ Carbon::parse($asset->asset_eol_date)->diffForHumans(['parts' => 2]) }}
+                                                @else
+                                                    {{ trans('general.na_no_purchase_date') }}
                                                 @endif
-
+                                                @if ($asset->eol_explicit)
+                                                    <i class="fas fa-exclamation-triangle text-orange"
+                                                       aria-hidden="true"
+                                                       data-tooltip="true"
+                                                       data-placement="top"
+                                                       data-title="Explicit EOL"
+                                                       title="Explicit EOL">
+                                                    </i>
+                                                @endif
                                             </div>
                                         </div>
                                     @endif
@@ -594,7 +690,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->expected_checkin, 'date', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->expected_checkin, 'date', false) }}
                                             </div>
                                         </div>
                                     @endif
@@ -606,7 +702,7 @@
                                             </strong>
                                         </div>
                                         <div class="col-md-6">
-                                            {!! nl2br(e($asset->notes)) !!}
+                                            {!! nl2br(Helper::parseEscapedMarkedownInline($asset->notes)) !!}
                                         </div>
                                     </div>
 
@@ -656,7 +752,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->created_at, 'datetime', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->created_at, 'datetime', false) }}
                                             </div>
                                         </div>
                                     @endif
@@ -669,7 +765,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->updated_at, 'datetime', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->updated_at, 'datetime', false) }}
                                             </div>
                                         </div>
                                     @endif
@@ -681,7 +777,7 @@
                                                 </strong>
                                             </div>
                                             <div class="col-md-6">
-                                                {{ \App\Helpers\Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}
+                                                {{ Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}
                                             </div>
                                         </div>
                                      @endif
@@ -722,7 +818,26 @@
                                             {{ ($asset->userRequests) ? (int) $asset->userRequests->count() : '0' }}
                                         </div>
                                     </div>
+                                    <div class="row">
+                                        <div class="col-md-2">
+                                            <strong>
+                                               Labels
+                                            </strong>
+                                        </div>
+                                        <div class="col-md-6">
+                                            {{ Form::open([
+                                                      'method' => 'POST',
+                                                      'route' => ['hardware/bulkedit'],
+                                                      'class' => 'form-inline',
+                                                       'id' => 'bulkForm']) }}
+                                                <input type="hidden" name="bulk_actions" value="labels" />
+                                                <input type="hidden" name="ids[{{$asset->id}}]" value="{{ $asset->id }}" />
+                                                <button class="btn btn-sm btn-default" id="bulkEdit" ><i class="fas fa-barcode" aria-hidden="true"></i> {{ trans_choice('button.generate_labels', 1) }}</button>
 
+                                            {{ Form::close() }}
+
+                                        </div>
+                                    </div>
                                 </div> <!-- end row-striped -->
 
                             </div><!-- /col-md-8 -->
@@ -730,45 +845,109 @@
                             <div class="col-md-4">
 
                                 @if (($asset->image) || (($asset->model) && ($asset->model->image!='')))
-
-
-                                    <div class="col-md-12 text-center" style="padding-bottom: 15px;">
+                                    <div class="text-center col-md-12" style="padding-bottom: 15px;">
                                         <a href="{{ ($asset->getImageUrl()) ? $asset->getImageUrl() : null }}" data-toggle="lightbox">
                                             <img src="{{ ($asset->getImageUrl()) ? $asset->getImageUrl() : null }}" class="assetimg img-responsive" alt="{{ $asset->getDisplayNameAttribute() }}">
                                         </a>
                                     </div>
+                                @else
+                                    <!-- generic image goes here -->
                                 @endif
 
-                                @if  ($snipeSettings->qr_code=='1')
-                                    <img src="{{ config('app.url') }}/hardware/{{ $asset->id }}/qr_code" class="img-thumbnail pull-right" style="height: 100px; width: 100px; margin-right: 10px;" alt="QR code for {{ $asset->getDisplayNameAttribute() }}">
-                                @endif
+                                    <!-- Start side button column -->
+
+                                    @if (($asset->assetstatus) && ($asset->assetstatus->deployable=='1'))
+                                        @if (($asset->assigned_to != '') && ($asset->deleted_at==''))
+                                            @can('checkin', \App\Models\Asset::class)
+                                                <div class="col-md-12">
+                                                    <a href="{{ route('hardware.checkin.create', $asset->id) }}" style="width: 100%;" class="btn btn-sm btn-primary hidden-print">
+                                                        {{ trans('admin/hardware/general.checkin') }}
+                                                    </a>
+                                                </div>
+                                            @endcan
+                                        @elseif (($asset->assigned_to == '') && ($asset->deleted_at==''))
+                                            @can('checkout', \App\Models\Asset::class)
+                                                <div class="col-md-12" style="padding-top: 5px;">
+                                                    <a href="{{ route('hardware.checkout.create', $asset->id)  }}" style="width: 100%;" class="btn btn-sm btn-primary hidden-print">
+                                                        {{ trans('admin/hardware/general.checkout') }}
+                                                    </a>
+                                                </div>
+                                            @endcan
+                                        @endif
+                                    @endif
+
+
+                                    @can('update', $asset)
+                                        @if ($asset->deleted_at=='')
+                                        <div class="col-md-12" style="padding-top: 5px;">
+                                            <a href="{{ route('hardware.edit', $asset->id) }}" style="width: 100%;" class="btn btn-sm btn-primary hidden-print">
+                                                {{ trans('admin/hardware/general.edit') }}
+                                            </a>
+                                        </div>
+                                        @endif
+                                    @endcan
+
+                                    @can('create', $asset)
+                                        <div class="col-md-12" style="padding-top: 5px;">
+                                            <a href="{{ route('clone/hardware', $asset->id) }}" style="width: 100%;" class="btn btn-sm btn-primary hidden-print">
+                                                {{ trans('admin/hardware/general.clone') }}
+                                            </a>
+                                        </div>
+                                    @endcan
+
+                                    @can('audit', \App\Models\Asset::class)
+                                        <div class="col-md-12" style="padding-top: 5px;">
+                                            <a href="{{ route('asset.audit.create', $asset->id)  }}" style="width: 100%;" class="btn btn-sm btn-primary hidden-print">
+                                                {{ trans('general.audit') }}
+                                            </a>
+                                        </div>
+                                    @endcan
+
+                                    @can('delete', $asset)
+                                        <div class="col-md-12" style="padding-top: 30px; padding-bottom: 30px;">
+                                            @if ($asset->deleted_at=='')
+                                                <button class="btn btn-sm btn-block btn-danger delete-asset" data-toggle="modal" data-title="{{ trans('general.delete') }}" data-content="{{ trans('general.sure_to_delete_var', ['item' => $asset->asset_tag]) }}" data-target="#dataConfirmModal">{{ trans('general.delete') }} </button>
+                                                <span class="sr-only">{{ trans('general.delete') }}</span>
+                                            @else
+                                                <form method="POST" action="{{ route('restore/hardware', ['assetId' => $asset->id]) }}">
+                                                    @csrf
+                                                    <button class="btn btn-sm btn-warning col-md-12">{{ trans('general.restore') }}</button>
+                                                </form>
+                                           @endif
+                                    @endcan
 
                                 @if (($asset->assignedTo) && ($asset->deleted_at==''))
-                                    <h2>{{ trans('admin/hardware/form.checkedout_to') }}</h2>
+                                    <div style="text-align: left">
+                                        <h2>{{ trans('admin/hardware/form.checkedout_to') }}</h2>
                                         <p>
                                         @if($asset->checkedOutToUser()) <!-- Only users have avatars currently-->
                                             <img src="{{ $asset->assignedTo->present()->gravatar() }}" class="user-image-inline" alt="{{ $asset->assignedTo->present()->fullName() }}">
                                             @endif
+                                        </p>
                                             {!! $asset->assignedTo->present()->glyph() . ' ' .$asset->assignedTo->present()->nameUrl() !!}
                                         </p>
 
                                         <ul class="list-unstyled" style="line-height: 25px;">
                                             @if ((isset($asset->assignedTo->email)) && ($asset->assignedTo->email!=''))
                                                 <li>
-                                                    <i class="fa fa-envelope-o" aria-hidden="true"></i>
+                                                    <i class="far fa-envelope" aria-hidden="true"></i>
                                                     <a href="mailto:{{ $asset->assignedTo->email }}">{{ $asset->assignedTo->email }}</a>
                                                 </li>
                                             @endif
 
                                             @if ((isset($asset->assignedTo)) && ($asset->assignedTo->phone!=''))
                                                 <li>
-                                                    <i class="fa fa-phone" aria-hidden="true"></i>
+                                                    <i class="fas fa-phone" aria-hidden="true"></i>
                                                     <a href="tel:{{ $asset->assignedTo->phone }}">{{ $asset->assignedTo->phone }}</a>
                                                 </li>
                                             @endif
 
+                                            @if((isset($asset->assignedTo)) && ($asset->assignedTo->department))
+                                                <li>{{ trans('admin/hardware/general.user_department') }}: {{ $asset->assignedTo->department->name}}</li>
+                                            @endif
+
                                             @if (isset($asset->location))
-                                                <li>{{ $asset->location->name }}</li>
+                                                <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i> {{ $asset->location->name }}</li>
                                                 <li>{{ $asset->location->address }}
                                                     @if ($asset->location->address2!='')
                                                         {{ $asset->location->address2 }}
@@ -782,12 +961,29 @@
                                                     {{ $asset->location->state }} {{ $asset->location->zip }}
                                                 </li>
                                             @endif
+                                                <li>
+                                                    <i class="fas fa-calendar"></i> {{ trans('admin/hardware/form.checkout_date') }}: {{ Helper::getFormattedDateObject($asset->last_checkout, 'date', false) }}
+                                                </li>
+                                            @if (isset($asset->expected_checkin))
+                                                <li>
+                                                    <i class="fas fa-calendar"></i> {{ trans('admin/hardware/form.expected_checkin') }}: {{ Helper::getFormattedDateObject($asset->expected_checkin, 'date', false) }}
+                                                </li>
+                                            @endif
                                         </ul>
+                                    </div>
 
                                 @endif
+
+                                @if  ($snipeSettings->qr_code=='1')
+                                    <div class="col-md-12" style="padding-top: 15px;">
+                                        <img src="{{ config('app.url') }}/hardware/{{ $asset->id }}/qr_code" class="img-thumbnail pull-right" style="height: 100px; width: 100px; margin-right: 10px;" alt="QR code for {{ $asset->getDisplayNameAttribute() }}">
+                                    </div>
+                                @endif
+
                             </div> <!-- div.col-md-4 -->
                         </div><!-- /row -->
                     </div><!-- /.tab-pane asset details -->
+                    </div>
 
                     <div class="tab-pane fade" id="software">
                         <div class="row">
@@ -799,6 +995,7 @@
                                         <tr>
                                             <th class="col-md-4">{{ trans('general.name') }}</th>
                                             <th class="col-md-4"><span class="line"></span>{{ trans('admin/licenses/form.license_key') }}</th>
+                                            <th class="col-md-4"><span class="line"></span>{{ trans('admin/licenses/form.expiration') }}</th>
                                             <th class="col-md-1"><span class="line"></span>{{ trans('table.actions') }}</th>
                                         </tr>
                                         </thead>
@@ -815,6 +1012,9 @@
                                                         @endcan
                                                     </td>
                                                     <td>
+                                                        {{ Helper::getFormattedDateObject($seat->license->expiration_date, 'date', false) }}
+                                                    </td>
+                                                    <td>
                                                         <a href="{{ route('licenses.checkin', $seat->id) }}" class="btn btn-sm bg-purple" data-tooltip="true">{{ trans('general.checkin') }}</a>
                                                     </td>
                                                 </tr>
@@ -825,7 +1025,7 @@
                                 @else
 
                                     <div class="alert alert-info alert-block">
-                                        <i class="fa fa-info-circle"></i>
+                                        <i class="fas fa-info-circle"></i>
                                         {{ trans('general.no_results') }}
                                     </div>
                                 @endif
@@ -843,6 +1043,9 @@
                                         <th>{{ trans('general.name') }}</th>
                                         <th>{{ trans('general.qty') }}</th>
                                         <th>{{ trans('general.purchase_cost') }}</th>
+                                        <th>{{trans('admin/hardware/form.serial')}}</th>
+                                        <th>{{trans('general.checkin')}}</th>
+                                        <th></th>
                                         </thead>
                                         <tbody>
                                         <?php $totalCost = 0; ?>
@@ -855,9 +1058,13 @@
                                                         <a href="{{ route('components.show', $component->id) }}">{{ $component->name }}</a>
                                                     </td>
                                                     <td>{{ $component->pivot->assigned_qty }}</td>
-                                                    <td>{{ $component->purchase_cost }}</td>
-                                                    <?php $totalCost = $totalCost + $component->purchase_cost ;?>
+                                                    <td>{{ Helper::formatCurrencyOutput($component->purchase_cost) }} each</td>
+                                                    <td>{{ $component->serial }}</td>
+                                                    <td>
+                                                        <a href="{{ route('components.checkin.show', $component->pivot->id) }}" class="btn btn-sm bg-purple" data-tooltip="true">{{ trans('general.checkin') }}</a>
+                                                    </td>
 
+                                                    <?php $totalCost = $totalCost + ($component->purchase_cost *$component->pivot->assigned_qty) ?>
                                                 </tr>
                                             @endif
                                         @endforeach
@@ -873,7 +1080,7 @@
                                     </table>
                                 @else
                                     <div class="alert alert-info alert-block">
-                                        <i class="fa fa-info-circle"></i>
+                                        <i class="fas fa-info-circle"></i>
                                         {{ trans('general.no_results') }}
                                     </div>
                                 @endif
@@ -895,13 +1102,13 @@
                                               'class' => 'form-inline',
                                                'id' => 'bulkForm']) }}
                                     <div id="toolbar">
-                                        <label for="bulk_actions"><span class="sr-only">Bulk Actions</span></label>
+                                        <label for="bulk_actions"><span class="sr-only">{{ trans('general.bulk_actions')}}</span></label>
                                         <select name="bulk_actions" class="form-control select2" style="width: 150px;" aria-label="bulk_actions">
-                                            <option value="edit">Edit</option>
-                                            <option value="delete">Delete</option>
-                                            <option value="labels">Generate Labels</option>
+                                            <option value="edit">{{ trans('button.edit') }}</option>
+                                            <option value="delete">{{ trans('button.delete')}}</option>
+                                            <option value="labels">{{ trans_choice('button.generate_labels', 2) }}</option>
                                         </select>
-                                        <button class="btn btn-primary" id="bulkEdit" disabled>Go</button>
+                                        <button class="btn btn-primary" id="bulkEdit" disabled>{{ trans('button.go') }}</button>
                                     </div>
 
                                     <!-- checked out assets table -->
@@ -915,6 +1122,7 @@
                                                 data-search="true"
                                                 data-side-pagination="server"
                                                 data-show-columns="true"
+                                                data-show-fullscreen="true"
                                                 data-show-export="true"
                                                 data-show-refresh="true"
                                                 data-sort-order="asc"
@@ -935,7 +1143,7 @@
                                 @else
 
                                     <div class="alert alert-info alert-block">
-                                        <i class="fa fa-info-circle"></i>
+                                        <i class="fas fa-info-circle"></i>
                                         {{ trans('general.no_results') }}
                                     </div>
                                 @endif
@@ -951,7 +1159,7 @@
                             <div class="col-md-12">
                                 @can('update', \App\Models\Asset::class)
                                     <div id="maintenance-toolbar">
-                                        <a href="{{ route('maintenances.create', ['asset_id' => $asset->id]) }}" class="btn btn-primary">Add Maintenance</a>
+                                        <a href="{{ route('maintenances.create', ['asset_id' => $asset->id]) }}" class="btn btn-primary">{{ trans('button.add_maintenance') }}</a>
                                     </div>
                             @endcan
 
@@ -966,6 +1174,7 @@
                                         data-side-pagination="server"
                                         data-toolbar="#maintenance-toolbar"
                                         data-show-columns="true"
+                                        data-show-fullscreen="true"
                                         data-show-refresh="true"
                                         data-show-export="true"
                                         data-export-options='{
@@ -973,7 +1182,8 @@
                            "ignoreColumn": ["actions","image","change","checkbox","checkincheckout","icon"]
                          }'
                                         data-url="{{ route('api.maintenances.index', array('asset_id' => $asset->id)) }}"
-                                        data-cookie-id-table="assetMaintenancesTable">
+                                        data-cookie-id-table="assetMaintenancesTable"
+                                        data-cookie="true">
                                 </table>
                             </div> <!-- /.col-md-12 -->
                         </div> <!-- /.row -->
@@ -991,6 +1201,7 @@
                                         data-search="true"
                                         data-side-pagination="server"
                                         data-show-columns="true"
+                                        data-show-fullscreen="true"
                                         data-show-refresh="true"
                                         data-sort-order="desc"
                                         data-sort-name="created_at"
@@ -1001,25 +1212,27 @@
                        }'
 
                       data-url="{{ route('api.activity.index', ['item_id' => $asset->id, 'item_type' => 'asset']) }}"
-                      data-cookie-id-table="assetHistory">
+                      data-cookie-id-table="assetHistory"
+                      data-cookie="true">
                 <thead>
                 <tr>
-                  <th data-visible="true" style="width: 40px;" class="hidden-xs">Icon</th>
-                  <th class="col-sm-2" data-visible="true" data-field="created_at" data-formatter="dateDisplayFormatter">{{ trans('general.date') }}</th>
-                  <th class="col-sm-1" data-visible="true" data-field="admin" data-formatter="usersLinkObjFormatter">{{ trans('general.admin') }}</th>
-                  <th class="col-sm-1" data-visible="true" data-field="action_type">{{ trans('general.action') }}</th>
-                  <th class="col-sm-2" data-visible="true" data-field="item" data-formatter="polymorphicItemFormatter">{{ trans('general.item') }}</th>
-                  <th class="col-sm-2" data-visible="true" data-field="target" data-formatter="polymorphicItemFormatter">{{ trans('general.target') }}</th>
-                  <th class="col-sm-2" data-field="note">{{ trans('general.notes') }}</th>
-                  @if  ($snipeSettings->require_accept_signature=='1')
-                    <th class="col-md-3" data-field="signature_file" data-visible="false"  data-formatter="imageFormatter">{{ trans('general.signature') }}</th>
-                  @endif
-                  <th class="col-md-3" data-visible="false" data-field="file" data-visible="false"  data-formatter="fileUploadFormatter">{{ trans('general.download') }}</th>
-                  <th class="col-sm-2" data-field="log_meta" data-visible="true" data-formatter="changeLogFormatter">Changed</th>
+                  <th data-visible="true" data-field="icon" style="width: 40px;" class="hidden-xs" data-formatter="iconFormatter">{{ trans('admin/hardware/table.icon') }}</th>
+                  <th data-visible="true" data-field="action_date" data-sortable="true" data-formatter="dateDisplayFormatter">{{ trans('general.date') }}</th>
+                  <th data-visible="true" data-field="admin" data-formatter="usersLinkObjFormatter">{{ trans('general.admin') }}</th>
+                  <th data-visible="true" data-field="action_type">{{ trans('general.action') }}</th>
+                  <th class="col-sm-2" data-field="file" data-visible="false" data-formatter="fileUploadNameFormatter">{{ trans('general.file_name') }}</th>
+                  <th data-visible="true" data-field="item" data-formatter="polymorphicItemFormatter">{{ trans('general.item') }}</th>
+                  <th data-visible="true" data-field="target" data-formatter="polymorphicItemFormatter">{{ trans('general.target') }}</th>
+                  <th data-field="note">{{ trans('general.notes') }}</th>
+                  <th data-field="signature_file" data-visible="false"  data-formatter="imageFormatter">{{ trans('general.signature') }}</th>
+                  <th data-visible="false" data-field="file" data-visible="false"  data-formatter="fileUploadFormatter">{{ trans('general.download') }}</th>
+                   <th data-field="log_meta" data-visible="true" data-formatter="changeLogFormatter">{{ trans('admin/hardware/table.changed')}}</th>
+                   <th data-field="remote_ip" data-visible="false" data-sortable="true">{{ trans('admin/settings/general.login_ip') }}</th>
+                   <th data-field="user_agent" data-visible="false" data-sortable="true">{{ trans('admin/settings/general.login_user_agent') }}</th>
+                   <th data-field="action_source" data-visible="false" data-sortable="true">{{ trans('general.action_source') }}</th>
                 </tr>
                 </thead>
               </table>
-
             </div>
           </div> <!-- /.row -->
         </div> <!-- /.tab-pane history -->
@@ -1036,7 +1249,9 @@
                       data-id-table="assetFileHistory"
                       data-search="true"
                       data-side-pagination="client"
+                      data-sortable="true"
                       data-show-columns="true"
+                      data-show-fullscreen="true"
                       data-show-refresh="true"
                       data-sort-order="desc"
                       data-sort-name="created_at"
@@ -1048,12 +1263,13 @@
                                             data-cookie-id-table="assetFileHistory">
                                         <thead>
                                         <tr>
-                                            <th data-visible="true" data-field="icon">{{trans('general.file_type')}}</th>
-                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="notes">{{ trans('general.notes') }}</th>
+                                            <th data-visible="true" data-field="icon" data-sortable="true">{{trans('general.file_type')}}</th>
                                             <th class="col-md-2" data-searchable="true" data-visible="true" data-field="image">{{ trans('general.image') }}</th>
-                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="filename">{{ trans('general.file_name') }}</th>
-                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="download">{{ trans('general.download') }}</th>
-                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="created_at">{{ trans('general.created_at') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="filename" data-sortable="true">{{ trans('general.file_name') }}</th>
+                                            <th class="col-md-1" data-searchable="true" data-visible="true" data-field="filesize">{{ trans('general.filesize') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="notes" data-sortable="true">{{ trans('general.notes') }}</th>
+                                            <th class="col-md-1" data-searchable="true" data-visible="true" data-field="download">{{ trans('general.download') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="created_at" data-sortable="true">{{ trans('general.created_at') }}</th>
                                             <th class="col-md-1" data-searchable="true" data-visible="true" data-field="actions">{{ trans('table.actions') }}</th>
                                         </tr>
                                         </thead>
@@ -1061,40 +1277,48 @@
 
                                         @foreach ($asset->uploads as $file)
                                             <tr>
-                                                <td><i class="{{ \App\Helpers\Helper::filetype_icon($file->filename) }} icon-med" aria-hidden="true"></i></td>
+                                                <td><i class="{{ Helper::filetype_icon($file->filename) }} icon-med" aria-hidden="true"></i></td>
+                                                <td>
+                                                    @if ( Helper::checkUploadIsImage($file->get_src('assets')))
+                                                        <a href="{{ route('show/assetfile', ['assetId' => $asset->id, 'fileId' =>$file->id]) }}" data-toggle="lightbox" data-type="image" data-title="{{ $file->filename }}" data-footer="{{ Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}">
+                                                            <img src="{{ route('show/assetfile', ['assetId' => $asset->id, 'fileId' =>$file->id]) }}" style="max-width: 50px;">
+                                                        </a>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if (Storage::exists('private_uploads/assets/'.$file->filename))
+                                                    {{ $file->filename }}
+                                                    @else
+                                                    <del>{{ $file->filename }}</del>
+                                                    @endif
+                                                </td>
+                                                <td data-value="{{ (Storage::exists('private_uploads/assets/'.$file->filename) ? Storage::size('private_uploads/assets/'.$file->filename) : '') }}">
+                                                    {{ @Helper::formatFilesizeUnits(Storage::exists('private_uploads/assets/'.$file->filename) ? Storage::size('private_uploads/assets/'.$file->filename) : '') }}
+                                                </td>
                                                 <td>
                                                     @if ($file->note)
                                                         {{ $file->note }}
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    @if ( \App\Helpers\Helper::checkUploadIsImage($file->get_src('assets')))
-                                                        <a href="{{ route('show/assetfile', ['assetId' => $asset->id, 'fileId' =>$file->id]) }}" data-toggle="lightbox" data-type="image" data-title="{{ $file->filename }}" data-footer="{{ \App\Helpers\Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}">
-                                                            <img src="{{ route('show/assetfile', ['assetId' => $asset->id, 'fileId' =>$file->id]) }}" style="max-width: 50px;">
+                                                    @if (($file->filename) && (Storage::exists('private_uploads/assets/'.$file->filename)))
+                                                        <a href="{{ route('show/assetfile', [$asset->id, $file->id, 'download'=>'true']) }}" class="btn btn-sm btn-default">
+                                                            <i class="fas fa-download" aria-hidden="true"></i>
                                                         </a>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    {{ $file->filename }}
-                                                </td>
-                                                <td>
-                                                    @if ($file->filename)
-                                                        <a href="{{ route('show/assetfile', [$asset->id, $file->id]) }}" class="btn btn-default">
-                                                            <i class="fa fa-download" aria-hidden="true"></i>
-                                                        </a>
-                                                    @endif
-                                                </td>
 
+                                                        <a href="{{ route('show/assetfile', [$asset->id, $file->id, 'inline'=>'true']) }}" class="btn btn-sm btn-default" target="_blank">
+                                                            <i class="fa fa-external-link" aria-hidden="true"></i>
+                                                        </a>
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     @if ($file->created_at)
-                                                        {{ \App\Helpers\Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}
+                                                        {{ Helper::getFormattedDateObject($file->created_at, 'datetime', false) }}
                                                     @endif
                                                 </td>
-
-
                                                 <td>
                                                     @can('update', \App\Models\Asset::class)
-                                                        <a class="btn delete-asset btn-sm btn-danger btn-sm" href="{{ route('delete/assetfile', [$asset->id, $file->id]) }}" data-tooltip="true" data-title="Delete" data-content="{{ trans('general.delete_confirm', ['item' => $file->filename]) }}"><i class="fa fa-trash icon-white" aria-hidden="true"></i></a>
+                                                        <a class="btn delete-asset btn-sm btn-danger btn-sm" href="{{ route('delete/assetfile', [$asset->id, $file->id]) }}" data-tooltip="true" data-title="Delete" data-content="{{ trans('general.delete_confirm', ['item' => $file->filename]) }}"><i class="fas fa-trash icon-white" aria-hidden="true"></i></a>
                                                     @endcan
                                                 </td>
                                             </tr>
@@ -1105,7 +1329,109 @@
                                 @else
 
                                     <div class="alert alert-info alert-block">
-                                        <i class="fa fa-info-circle"></i>
+                                        <i class="fas fa-info-circle"></i>
+                                        {{ trans('general.no_results') }}
+                                    </div>
+                                @endif
+
+                            </div> <!-- /.col-md-12 -->
+                        </div> <!-- /.row -->
+                    </div> <!-- /.tab-pane files -->
+
+                    <div class="tab-pane fade" id="modelfiles">
+                        <div class="row">
+                            <div class="col-md-12">
+
+                                @if (($asset->model) && ($asset->model->uploads->count() > 0))
+                                    <table
+                                            class="table table-striped snipe-table"
+                                            id="assetModelFileHistory"
+                                            data-pagination="true"
+                                            data-id-table="assetModelFileHistory"
+                                            data-search="true"
+                                            data-side-pagination="client"
+                                            data-sortable="true"
+                                            data-show-columns="true"
+                                            data-show-fullscreen="true"
+                                            data-show-refresh="true"
+                                            data-sort-order="desc"
+                                            data-sort-name="created_at"
+                                            data-show-export="true"
+                                            data-export-options='{
+                         "fileName": "export-assetmodel-{{ $asset->model->id }}-files",
+                         "ignoreColumn": ["actions","image","change","checkbox","checkincheckout","icon"]
+                       }'
+                                            data-cookie-id-table="assetFileHistory">
+                                        <thead>
+                                        <tr>
+                                            <th data-visible="true" data-field="icon" data-sortable="true">{{trans('general.file_type')}}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="image">{{ trans('general.image') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="filename" data-sortable="true">{{ trans('general.file_name') }}</th>
+                                            <th class="col-md-1" data-searchable="true" data-visible="true" data-field="filesize">{{ trans('general.filesize') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="notes" data-sortable="true">{{ trans('general.notes') }}</th>
+                                            <th class="col-md-1" data-searchable="true" data-visible="true" data-field="download">{{ trans('general.download') }}</th>
+                                            <th class="col-md-2" data-searchable="true" data-visible="true" data-field="created_at" data-sortable="true">{{ trans('general.created_at') }}</th>
+                                            <th class="col-md-1" data-searchable="true" data-visible="true" data-field="actions">{{ trans('table.actions') }}</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+
+                                        @foreach ($asset->model->uploads as $file)
+                                            <tr>
+                                                <td><i class="{{ Helper::filetype_icon($file->filename) }} icon-med" aria-hidden="true"></i></td>
+                                                <td>
+                                                    @if ( Helper::checkUploadIsImage($file->get_src('assetmodels')))
+                                                        <a href="{{ route('show/modelfile', ['modelID' => $asset->model->id, 'fileId' =>$file->id]) }}" data-toggle="lightbox" data-type="image" data-title="{{ $file->filename }}" data-footer="{{ Helper::getFormattedDateObject($asset->last_checkout, 'datetime', false) }}">
+                                                            <img src="{{ route('show/modelfile', ['modelID' => $asset->model->id, 'fileId' =>$file->id]) }}" style="max-width: 50px;">
+                                                        </a>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if (Storage::exists('private_uploads/assetmodels/'.$file->filename))
+                                                        {{ $file->filename }}
+                                                    @else
+                                                        <del>{{ $file->filename }}</del>
+                                                    @endif
+                                                </td>
+                                                <td data-value="{{ (Storage::exists('private_uploads/assetmodels/'.$file->filename)) ? Storage::size('private_uploads/assetmodels/'.$file->filename) : '' }}">
+                                                    {{ (Storage::exists('private_uploads/assetmodels/'.$file->filename)) ? Helper::formatFilesizeUnits(Storage::size('private_uploads/assetmodels/'.$file->filename)) : '' }}
+                                                </td>
+                                                <td>
+                                                    @if ($file->note)
+                                                        {{ $file->note }}
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if (($file->filename) && (Storage::exists('private_uploads/assetmodels/'.$file->filename)))
+                                                        <a href="{{ route('show/modelfile', [$asset->model->id, $file->id]) }}" class="btn btn-sm btn-default">
+                                                            <i class="fas fa-download" aria-hidden="true"></i>
+                                                        </a>
+
+                                                        <a href="{{ route('show/modelfile', [$asset->model->id, $file->id, 'inline'=>'true']) }}" class="btn btn-sm btn-default" target="_blank">
+                                                            <i class="fa fa-external-link" aria-hidden="true"></i>
+                                                        </a>
+
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if ($file->created_at)
+                                                        {{ Helper::getFormattedDateObject($file->created_at, 'datetime', false) }}
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @can('update', \App\Models\AssetModel::class)
+                                                        <a class="btn delete-asset btn-sm btn-danger btn-sm" href="{{ route('delete/modelfile', [$asset->model->id, $file->id]) }}" data-tooltip="true" data-title="Delete" data-content="{{ trans('general.delete_confirm', ['item' => $file->filename]) }}"><i class="fas fa-trash icon-white" aria-hidden="true"></i></a>
+                                                    @endcan
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        </tbody>
+                                    </table>
+
+                                @else
+
+                                    <div class="alert alert-info alert-block">
+                                        <i class="fas fa-info-circle"></i>
                                         {{ trans('general.no_results') }}
                                     </div>
                                 @endif
@@ -1125,6 +1451,16 @@
 @stop
 
 @section('moar_scripts')
+    <script>
+
+        $('#dataConfirmModal').on('show.bs.modal', function (event) {
+            var content = $(event.relatedTarget).data('content');
+            var title = $(event.relatedTarget).data('title');
+            $(this).find(".modal-body").text(content);
+            $(this).find(".modal-header").text(title);
+        });
+
+    </script>
     @include ('partials.bootstrap-table')
 
 @stop

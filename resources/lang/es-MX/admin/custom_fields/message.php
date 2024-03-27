@@ -49,6 +49,12 @@ return array(
 
     ),
 
+    'fieldset_default_value' => array(
+
+        'error' => 'Error al validar los valores predeterminados del conjunto de campos.',
+
+    ),
+
 
 
 

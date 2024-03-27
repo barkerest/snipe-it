@@ -8,6 +8,8 @@ return array(
     'clone'                             => 'Clonar Categoría',
     'create'  							=> 'Crear Categoría',
     'edit'                              => 'Editar Categoría',
+    'email_will_be_sent_due_to_global_eula' => 'Se enviará un correo electrónico al usuario porque se está utilizando el EULA global.',
+    'email_will_be_sent_due_to_category_eula' => 'Se enviará un correo electrónico al usuario porque se ha establecido un EULA para esta categoría.',
     'eula_text'							=> 'Licencia de Categoría',
     'eula_text_help'					=> 'Este campo te permite personalizar tus licencias para tipos específicos de equipos, Si sólo tienes una licencia para todos tus activos, puedes seleccionar el cuadro debajo para usar la licencia primaria por defecto.',
     'name'                              => 'Nombre de la Categoría',
@@ -18,5 +20,6 @@ return array(
     'update'  							=> 'Actualizar Categoría',
     'use_default_eula'					=> 'Usa la <a href="#" data-toggle="modal" data-target="#eulaModal">licencia primaria predeterminada</a> en su lugar.',
     'use_default_eula_disabled'			=> '<del>Usa la licencia primaria predeterminada en su lugar.</del> No se ha establecido ninguna licencia primaria predeterminada. Por favor, añade una en las Configuraciones.',
+    'use_default_eula_column'			=> 'Usar EULA por defecto',
 
 );

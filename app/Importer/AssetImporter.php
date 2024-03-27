@@ -3,7 +3,12 @@
 namespace App\Importer;
 
 use App\Models\Asset;
+use App\Models\AssetModel;
 use App\Models\Statuslabel;
+use App\Models\User;
+use App\Events\CheckoutableCheckedIn;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class AssetImporter extends ItemImporter
 {
@@ -12,7 +17,10 @@ class AssetImporter extends ItemImporter
     public function __construct($filename)
     {
         parent::__construct($filename);
-        $this->defaultStatusLabelId = Statuslabel::first()->id;
+
+        if (!is_null(Statuslabel::first())) {
+            $this->defaultStatusLabelId = Statuslabel::first()->id;
+        }
     }
 
     protected function handle($row)
@@ -21,20 +29,17 @@ class AssetImporter extends ItemImporter
         parent::handle($row);
 
         if ($this->customFields) {
-
             foreach ($this->customFields as $customField) {
                 $customFieldValue = $this->array_smart_custom_field_fetch($row, $customField);
 
                 if ($customFieldValue) {
-
                     if ($customField->field_encrypted == 1) {
                         $this->item['custom_fields'][$customField->db_column_name()] = \Crypt::encrypt($customFieldValue);
-                        $this->log('Custom Field '. $customField->name.': '.\Crypt::encrypt($customFieldValue));
+                        $this->log('Custom Field '.$customField->name.': '.\Crypt::encrypt($customFieldValue));
                     } else {
                         $this->item['custom_fields'][$customField->db_column_name()] = $customFieldValue;
-                        $this->log('Custom Field '. $customField->name.': '.$customFieldValue);
+                        $this->log('Custom Field '.$customField->name.': '.$customFieldValue);
                     }
-
                 } else {
                     // Clear out previous data.
                     $this->item['custom_fields'][$customField->db_column_name()] = null;
@@ -57,30 +62,39 @@ class AssetImporter extends ItemImporter
     public function createAssetIfNotExists(array $row)
     {
         $editingAsset = false;
-        $asset_tag = $this->findCsvMatch($row, "asset_tag");
-        $asset = Asset::where(['asset_tag'=> $asset_tag])->first();
+        $asset_tag = $this->findCsvMatch($row, 'asset_tag');
+
+        if(empty($asset_tag)){
+            $asset_tag = Asset::autoincrement_asset();
+        }
+
+
+        $asset = Asset::where(['asset_tag'=> (string) $asset_tag])->first();
         if ($asset) {
-            if (!$this->updating) {
-                $this->log('A matching Asset ' . $asset_tag . ' already exists');
+            if (! $this->updating) {
+                $this->log('A matching Asset '.$asset_tag.' already exists');
+
                 return;
             }
 
-            $this->log("Updating Asset");
+            $this->log('Updating Asset');
             $editingAsset = true;
         } else {
-            $this->log("No Matching Asset, Creating a new one");
+            $this->log('No Matching Asset, Creating a new one');
             $asset = new Asset;
         }
-
-        $this->item['image'] = $this->findCsvMatch($row, "image");
-        $this->item['requestable'] = $this->fetchHumanBoolean($this->findCsvMatch($row, "requestable"));;
-        $asset->requestable =  $this->fetchHumanBoolean($this->findCsvMatch($row, "requestable"));
-        $this->item['warranty_months'] = intval($this->findCsvMatch($row, "warranty_months"));
+        $this->item['notes'] = trim($this->findCsvMatch($row, 'asset_notes'));
+        $this->item['image'] = trim($this->findCsvMatch($row, 'image'));
+        $this->item['requestable'] = trim(($this->fetchHumanBoolean($this->findCsvMatch($row, 'requestable'))) == 1) ? '1' : 0;
+        $asset->requestable = $this->item['requestable'];
+        $this->item['warranty_months'] = intval(trim($this->findCsvMatch($row, 'warranty_months')));
         $this->item['model_id'] = $this->createOrFetchAssetModel($row);
+        $this->item['byod'] = ($this->fetchHumanBoolean(trim($this->findCsvMatch($row, 'byod'))) == 1) ? '1' : 0;
+
 
         // If no status ID is found
-        if (!array_key_exists('status_id', $this->item) && !$editingAsset) {
-            $this->log("No status field found, defaulting to first status.");
+        if (! array_key_exists('status_id', $this->item) && ! $editingAsset) {
+            $this->log('No status field found, defaulting to first status.');
             $this->item['status_id'] = $this->defaultStatusLabelId;
         }
 
@@ -88,18 +102,27 @@ class AssetImporter extends ItemImporter
 
         // We need to save the user if it exists so that we can checkout to user later.
         // Sanitizing the item will remove it.
-        if(array_key_exists('checkout_target', $this->item)) {
+        if (array_key_exists('checkout_target', $this->item)) {
             $target = $this->item['checkout_target'];
         }
         $item = $this->sanitizeItemForStoring($asset, $editingAsset);
         // The location id fetched by the csv reader is actually the rtd_location_id.
         // This will also set location_id, but then that will be overridden by the
         // checkout method if necessary below.
-        if (isset($this->item["location_id"])) {
+        if (isset($this->item['location_id'])) {
             $item['rtd_location_id'] = $this->item['location_id'];
         }
 
+        $item['last_audit_date'] = null;
+        if (isset($this->item['last_audit_date'])) {
+            $item['last_audit_date'] = $this->item['last_audit_date'];
+        }
 
+        $item['next_audit_date'] = null;
+        if (isset($this->item['next_audit_date'])) {
+            $item['next_audit_date'] = $this->item['next_audit_date'];
+        }
+       
         if ($editingAsset) {
             $asset->update($item);
         } else {
@@ -112,19 +135,27 @@ class AssetImporter extends ItemImporter
                 $asset->{$custom_field} = $val;
             }
         }
-
-        //FIXME: this disables model validation.  Need to find a way to avoid double-logs without breaking everything.
-        // $asset->unsetEventDispatcher();
+        // This sets an attribute on the Loggable trait for the action log
+        $asset->setImported(true);
         if ($asset->save()) {
-            $asset->logCreate('Imported using csv importer');
-            $this->log('Asset ' . $this->item["name"] . ' with serial number ' . $this->item['serial'] . ' was created');
+
+            $this->log('Asset '.$this->item['name'].' with serial number '.$this->item['serial'].' was created');
 
             // If we have a target to checkout to, lets do so.
-            if(isset($target)) {
-                $asset->fresh()->checkOut($target);
+            //-- user_id is a property of the abstract class Importer, which this class inherits from and it's setted by
+            //-- the class that needs to use it (command importer or GUI importer inside the project).
+            if (isset($target) && ($target !== false)) {
+                if (!is_null($asset->assigned_to)){
+                    if ($asset->assigned_to != $target->id){
+                        event(new CheckoutableCheckedIn($asset, User::find($asset->assigned_to), Auth::user(), $asset->notes, date('Y-m-d H:i:s')));
+                    }
+                }
+
+                $asset->fresh()->checkOut($target, $this->user_id, date('Y-m-d H:i:s'), null, $asset->notes, $asset->name);
             }
+
             return;
         }
-        $this->logError($asset, 'Asset "' . $this->item['name'].'"');
+        $this->logError($asset, 'Asset "'.$this->item['name'].'"');
     }
 }

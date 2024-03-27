@@ -1,10 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Licenses;
 
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\License;
+use App\Models\LicenseSeat;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +20,6 @@ use Illuminate\Support\Facades\DB;
  */
 class LicensesController extends Controller
 {
-
     /**
      * Returns a view that invokes the ajax tables which actually contains
      * the content for the licenses listing, which is generated in getDatatable.
@@ -31,9 +33,9 @@ class LicensesController extends Controller
     public function index()
     {
         $this->authorize('view', License::class);
+
         return view('licenses/index');
     }
-
 
     /**
      * Returns a form view that allows an admin to create a new licence.
@@ -50,16 +52,14 @@ class LicensesController extends Controller
         $maintained_list = [
             '' => 'Maintained',
             '1' => 'Yes',
-            '0' => 'No'
+            '0' => 'No',
         ];
 
         return view('licenses/edit')
             ->with('depreciation_list', Helper::depreciationList())
             ->with('maintained_list', $maintained_list)
             ->with('item', new License);
-
     }
-
 
     /**
      * Validates and stores the license form data submitted from the new
@@ -99,10 +99,12 @@ class LicensesController extends Controller
         $license->category_id       = $request->input('category_id');
         $license->termination_date  = $request->input('termination_date');
         $license->user_id           = Auth::id();
+        $license->min_amt           = $request->input('min_amt');
 
         if ($license->save()) {
-            return redirect()->route("licenses.index")->with('success', trans('admin/licenses/message.create.success'));
+            return redirect()->route('licenses.index')->with('success', trans('admin/licenses/message.create.success'));
         }
+
         return redirect()->back()->withInput()->withErrors($license->getErrors());
     }
 
@@ -127,7 +129,7 @@ class LicensesController extends Controller
         $maintained_list = [
             '' => 'Maintained',
             '1' => 'Yes',
-            '0' => 'No'
+            '0' => 'No',
         ];
 
         return view('licenses/edit', compact('item'))
@@ -175,6 +177,7 @@ class LicensesController extends Controller
         $license->manufacturer_id   =  $request->input('manufacturer_id');
         $license->supplier_id       = $request->input('supplier_id');
         $license->category_id       = $request->input('category_id');
+        $license->min_amt           = $request->input('min_amt');
 
         if ($license->save()) {
             return redirect()->route('licenses.show', ['license' => $licenseId])->with('success', trans('admin/licenses/message.update.success'));
@@ -206,8 +209,8 @@ class LicensesController extends Controller
         if ($license->assigned_seats_count == 0) {
             // Delete the license and the associated license seats
             DB::table('license_seats')
-                ->where('id', $license->id)
-                ->update(array('assigned_to' => null,'asset_id' => null));
+                ->where('license_id', $license->id)
+                ->update(['assigned_to' => null, 'asset_id' => null]);
 
             $licenseSeats = $license->licenseseats();
             $licenseSeats->delete();
@@ -219,9 +222,7 @@ class LicensesController extends Controller
         }
         // There are still licenses in use.
         return redirect()->route('licenses.index')->with('error', trans('admin/licenses/message.assoc_users'));
-
     }
-
 
     /**
      * Makes the license detail page.
@@ -234,18 +235,36 @@ class LicensesController extends Controller
      */
     public function show($licenseId = null)
     {
+        $license = License::with('assignedusers')->find($licenseId);
 
-        $license = License::with('assignedusers', 'licenseSeats.user', 'licenseSeats.asset')->find($licenseId);
-
-        if ($license) {
-            $this->authorize('view', $license);
-            return view('licenses/view', compact('license'));
-        }
-        return redirect()->route('licenses.index')
+        if (!$license) {
+            return redirect()->route('licenses.index')
             ->with('error', trans('admin/licenses/message.does_not_exist'));
-    }
-    
+        }
 
+        $users_count = User::where('autoassign_licenses', '1')->count();
+        $total_seats_count = $license->totalSeatsByLicenseID();
+        $available_seats_count = $license->availCount()->count();
+        $checkedout_seats_count = ($total_seats_count - $available_seats_count);
+
+        $this->authorize('view', $license);
+        return view('licenses.view', compact('license'))
+            ->with('users_count', $users_count)
+            ->with('total_seats_count', $total_seats_count)
+            ->with('available_seats_count', $available_seats_count)
+            ->with('checkedout_seats_count', $checkedout_seats_count);
+
+    }
+
+
+    /**
+     * Returns a view with prepopulated data for clone
+     *
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @param int $licenseId
+     * @return \Illuminate\Http\RedirectResponse
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
     public function getClone($licenseId = null)
     {
         if (is_null($license_to_clone = License::find($licenseId))) {
@@ -257,7 +276,7 @@ class LicensesController extends Controller
         $maintained_list = [
             '' => 'Maintained',
             '1' => 'Yes',
-            '0' => 'No'
+            '0' => 'No',
         ];
         //clone the orig
         $license = clone $license_to_clone;

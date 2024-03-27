@@ -25,6 +25,8 @@
     {{ trans('general.archived') }}
   @elseif (Request::get('status')=='Deleted')
     {{ trans('general.deleted') }}
+  @elseif (Request::get('status')=='byod')
+    {{ trans('general.byod') }}
   @endif
 @else
 {{ trans('general.all') }}
@@ -32,7 +34,7 @@
 {{ trans('general.assets') }}
 
   @if (Request::has('order_number'))
-    : Order #{{ Request::get('order_number') }}
+    : Order #{{ strval(Request::get('order_number')) }}
   @endif
 @stop
 
@@ -43,9 +45,9 @@
 
 @section('header_right')
   <a href="{{ route('reports/custom') }}" style="margin-right: 5px;" class="btn btn-default">
-    Custom Export</a>
+    {{ trans('admin/hardware/general.custom_export') }}</a>
   @can('create', \App\Models\Asset::class)
-  <a href="{{ route('hardware.create') }}" class="btn btn-primary pull-right"></i> {{ trans('general.create') }}</a>
+  <a href="{{ route('hardware.create') }}" accesskey="n" class="btn btn-primary pull-right"></i> {{ trans('general.create') }}</a>
   @endcan
 
 @stop
@@ -57,25 +59,12 @@
   <div class="col-md-12">
     <div class="box">
       <div class="box-body">
-        {{ Form::open([
-          'method' => 'POST',
-          'route' => ['hardware/bulkedit'],
-          'class' => 'form-inline',
-           'id' => 'bulkForm']) }}
+       
           <div class="row">
             <div class="col-md-12">
-              @if (Request::get('status')!='Deleted')
-              <div id="toolbar">
-                <label for="bulk_actions"><span class="sr-only">Bulk Actions</span></label>
-                <select name="bulk_actions" class="form-control select2" aria-label="bulk_actions">
-                  <option value="edit">{{ trans('button.edit') }}</option>
-                  <option value="delete">{{ trans('button.delete') }}</option>
-                  <option value="labels">{{ trans_choice('button.generate_labels', 2) }}</option>
-                </select>
-                <button class="btn btn-primary" id="bulkEdit" disabled>Go</button>
-              </div>
-              @endif
 
+                @include('partials.asset-bulk-actions', ['status' => Request::get('status')])
+                   
               <table
                 data-advanced-search="true"
                 data-click-to-select="true"
@@ -91,12 +80,15 @@
                 data-show-refresh="true"
                 data-sort-order="asc"
                 data-sort-name="name"
-                data-toolbar="#toolbar"
+                data-show-fullscreen="true"
+                data-toolbar="#assetsBulkEditToolbar"
+                data-bulk-button-id="#bulkAssetEditButton"
+                data-bulk-form-id="#assetsBulkForm"
                 id="assetsListingTable"
                 class="table table-striped snipe-table"
                 data-url="{{ route('api.assets.index',
                     array('status' => e(Request::get('status')),
-                    'order_number'=>e(Request::get('order_number')),
+                    'order_number'=>e(strval(Request::get('order_number'))),
                     'company_id'=>e(Request::get('company_id')),
                     'status_id'=>e(Request::get('status_id')))) }}"
                 data-export-options='{
@@ -107,7 +99,7 @@
 
             </div><!-- /.col -->
           </div><!-- /.row -->
-        {{ Form::close() }}
+        
       </div><!-- ./box-body -->
     </div><!-- /.box -->
   </div>
